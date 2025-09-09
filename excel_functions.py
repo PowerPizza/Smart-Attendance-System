@@ -37,7 +37,7 @@ class ExcelFileWorker:
         return [item.value for item in self.ws.iter_cols(col_idx+1, col_idx+1, 0, 0).__next__()]
 
     def getHeaderLabels(self):
-        return self.getRowByIndex(self.header_column_idx)
+        return list(map(lambda itm: str(itm.date()) if isinstance(itm, datetime) else str(itm), self.getRowByIndex(self.header_column_idx)))
 
     def appendRow(self, data_):
         self.ws.append(data_)

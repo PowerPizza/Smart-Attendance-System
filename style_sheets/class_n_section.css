@@ -5,6 +5,13 @@ QScrollBar:vertical {
 QScrollBar::handle:vertical {
     background-color: #6b6b6b;
 }
+QScrollBar:horizontal {
+    background-color: #949494;
+    height: 6px;
+}
+QScrollBar::handle:horizontal {
+    background-color: #6b6b6b;
+}
 
 #classNsec_body {
     background-color: #1f2121;
@@ -72,6 +79,7 @@ QScrollBar::handle:vertical {
     font-size: 16px;
     padding: 5px;
     font-family: Arial;
+    background-color: transparent;
 }
 #class_element #hidden_element #cls_file_name:hover{
     background-color: #4a4a4a;
@@ -83,6 +91,81 @@ QScrollBar::handle:vertical {
     border: 1px solid gray;
     border-radius: 10px;
 }
+
+#classNsec_body #attendance_sheet_preview #lbl_no_sheet_preview{
+    color: white;
+}
+#classNsec_body #attendance_sheet_preview #lbl_no_sheet_selected{
+    font-size: 18px;
+    color: white;
+}
+#classNsec_body #attendance_sheet_preview #close_preview_btn{
+    font-size: 16px;
+    padding: 5px;
+    background-color: #ee5868;
+    color: white;
+    border-radius: 4px;
+}
+
+#classNsec_body #attendance_sheet_preview #table_{
+    background-color: transparent;
+    border-radius: 10px;
+    border: 1px solid gray;
+    border: 0;
+    font-size: 16px;
+    font-weight: 500;
+}
+#classNsec_body #attendance_sheet_preview #table_::item{
+    color: white;
+    border-bottom: 1px solid gray;
+    border-right: none;
+    border-left: none;
+    border-top: none;
+}
+#classNsec_body #attendance_sheet_preview #table_::item:selected{
+    background-color: #525252;
+}
+#classNsec_body #attendance_sheet_preview #table_ QHeaderView {
+    background-color: transparent;
+}
+#classNsec_body #attendance_sheet_preview #table_ QHeaderView::section:first {
+    border-top-left-radius: 10px;
+    border-left: 1px solid transparent;
+}
+#classNsec_body #attendance_sheet_preview #table_ QHeaderView::section:last {
+    border-top-right-radius: 10px;
+    border-right: 1px solid transparent;
+}
+#classNsec_body #attendance_sheet_preview #table_ QHeaderView::section {
+    border: 1px solid transparent;
+    border-right: 1px solid gray;
+    background-color: #3b2e23;
+    color: white;
+    font-size: 16px;
+    color: white;
+    font-weight: bold;
+    font-family: Arial;
+    padding: 5px;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+#classNsec_body #attendance_sheet_preview #table_ QHeaderView::up-arrow {
+    image: url(icons/arrow_drop_down.svg);
+    subcontrol-position: right center;
+    subcontrol-origin: padding;
+    padding-right: 6px;
+    width: 20px;
+    height: 20px;
+}
+#classNsec_body #attendance_sheet_preview #table_ QHeaderView::down-arrow {
+    image: url(icons/arrow_drop_up.svg);
+    subcontrol-position: right center;
+    subcontrol-origin: padding;
+    padding-right: 6px;
+    width: 20px;
+    height: 20px;
+}
+
 #classNsec_body #add_class_form #add_class_lbl {
     font-size: 18px;
     font-family: Arial;

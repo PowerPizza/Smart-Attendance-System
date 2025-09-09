@@ -57,8 +57,8 @@ QScrollBar::handle:vertical {
 }
 #student_main_body #student_table_holder #table_::item{
     color: white;
-    border-bottom: 1px solid gray;   /* horizontal line */
-    border-right: none;               /* no vertical line */
+    border-bottom: 1px solid gray;
+    border-right: none;
     border-left: none;
     border-top: none;
 }

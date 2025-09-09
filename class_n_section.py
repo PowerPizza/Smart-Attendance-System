@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import *
 from additional_widgets import *
 from PyQt5.QtCore import Qt
 from app_constants import AppConstant
+from excel_functions import *
 
 
 class ClassElement(QFrame):
@@ -10,7 +11,7 @@ class ClassElement(QFrame):
     hidden_element = None
     cls_name = None
 
-    def __init__(self, cls_name, cls_files):
+    def __init__(self, cls_name, cls_files, on_click_cls_file):
         super().__init__()
         self.setObjectName("class_element")
         self.cls_name = cls_name
@@ -57,8 +58,9 @@ class ClassElement(QFrame):
             hidden_element_layout.addWidget(lbl_)
 
         for item in cls_files:
-            lbl_ = QLabel("●  "+item)
+            lbl_ = QPushButton("●  "+item)
             lbl_.setObjectName("cls_file_name")
+            lbl_.clicked.connect(lambda _, item_copy=item: on_click_cls_file(cls_name, item_copy))
             lbl_.setCursor(Qt.PointingHandCursor)
             hidden_element_layout.addWidget(lbl_)
         layout_.addWidget(hidden_element)
@@ -86,6 +88,7 @@ class ClassElement(QFrame):
 class ClassList(QFrame):
     cls_list_holder = None
     cls_list_holder_layout = None
+    on_click_atd_sheet = None
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -128,10 +131,15 @@ class ClassList(QFrame):
 
         for dir_ in classes_:
             attendance_records = os.listdir(os.path.join(AppConstant.CLASS_DIRECTORY, dir_))
-            cls_element = ClassElement(dir_, attendance_records)
+            cls_element = ClassElement(dir_, attendance_records, on_click_cls_file=self.open_attendance_sheet)
             self.cls_list_holder_layout.addWidget(cls_element)
         self.cls_list_holder_layout.addStretch(1)
 
+    def open_attendance_sheet(self, cls_name, file_name):
+        try:
+            self.on_click_atd_sheet(cls_name, file_name)
+        except BaseException as e:
+            MessageBox().show_message("Error", f"Cannot load attendance sheet.\nError : {e}", "error")
 
 class AddClassForm(QFrame):
     cls_name_entry = None
@@ -186,11 +194,83 @@ class AttendanceSheetPreview(QFrame):
     def __init__(self):
         super().__init__()
         self.setObjectName("attendance_sheet_preview")
+
         layout_ = QVBoxLayout(self)
 
-        lbl1 = QLabel("Hello World")
-        layout_.addWidget(lbl1)
+        self.lbl_sheet_preview = lbl_sheet_preview = QLabel("<h2>Attendance Sheet Preview</h2>")
+        lbl_sheet_preview.setObjectName("lbl_no_sheet_preview")
+        layout_.addWidget(lbl_sheet_preview)
 
+        self.lbl_no_selected = lbl_no_selected = QLabel("No attendance sheet is selected to preview.")
+        lbl_no_selected.setObjectName("lbl_no_sheet_selected")
+        lbl_no_selected.setAlignment(Qt.AlignCenter)
+        layout_.addWidget(lbl_no_selected)
+
+        self.close_preview_btn = QPushButton("Close")
+        self.close_preview_btn.setObjectName("close_preview_btn")
+        self.close_preview_btn.setCursor(Qt.PointingHandCursor)
+        self.close_preview_btn.setVisible(False)
+        self.close_preview_btn.clicked.connect(self.on_close_preview)
+        layout_.addWidget(self.close_preview_btn, alignment=Qt.AlignRight)
+
+        self.table_ = QTableWidget(self)
+        self.table_.setObjectName("table_")
+        self.table_.setShowGrid(False)
+        self.table_.setEditTriggers(QAbstractItemView.NoEditTriggers)
+
+        self.table_.verticalHeader().setVisible(False)
+        self.table_.setSortingEnabled(True)
+        table_header = self.table_.horizontalHeader()
+        table_header.setStretchLastSection(False)
+        table_header.setSortIndicatorShown(True)
+        table_header.setSectionsClickable(True)
+        table_header.setSortIndicator(0, Qt.AscendingOrder)
+        table_header.setSectionResizeMode(QHeaderView.Interactive)
+        self.table_.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+
+        layout_.addWidget(self.table_)
+
+    def load_data(self, cls_dir, attendance_sheet):
+        self.lbl_no_selected.setVisible(False)
+        self.close_preview_btn.setVisible(True)
+        self.lbl_sheet_preview.setText(f"<h2>Attendance Sheet Preview - <u>{cls_dir}/{attendance_sheet}</u></h2>")
+        atd_sheet_db = ExcelFileWorker(os.path.join(AppConstant.CLASS_DIRECTORY, cls_dir, attendance_sheet))
+        self.table_.clear()
+        total_rows = atd_sheet_db.getNoOfRows()
+        total_cols = atd_sheet_db.getNoOfColumns()
+
+        self.table_.setRowCount(total_rows - 1)
+        self.table_.setColumnCount(total_cols)
+
+        self.table_.setHorizontalHeaderLabels(atd_sheet_db.getHeaderLabels())
+
+        if total_rows - 1 <= 0:
+            self.table_.setRowCount(1)
+            no_item_text = QTableWidgetItem(str("No Records found."))
+            no_item_text.setTextAlignment(Qt.AlignCenter)
+            self.table_.setItem(0, 0, no_item_text)
+            self.table_.setSpan(0, 0, 1, total_cols)
+            return
+        for x in range(total_rows - 1):
+            row_ = atd_sheet_db.getRowByIndex(x + 1)
+
+            for idx_, data_ in enumerate(row_):
+                if idx_ == atd_sheet_db.primary_column_idx:
+                    data_item = QTableWidgetItem()
+                    data_item.setData(Qt.DisplayRole, int(data_))
+                else:
+                    data_item = QTableWidgetItem(str(data_))
+                data_item.setTextAlignment(Qt.AlignCenter)
+                self.table_.setItem(x, idx_, data_item)
+        self.table_.resizeColumnsToContents()
+
+    def on_close_preview(self):
+        self.table_.clear()
+        self.table_.setRowCount(0)
+        self.table_.setColumnCount(0)
+        self.close_preview_btn.setVisible(False)
+        self.lbl_no_selected.setVisible(True)
+        self.lbl_sheet_preview.setText(f"<h2>Attendance Sheet Preview</h2>")
 
 class ClassNSectionPage(QFrame):
     def __init__(self):
@@ -215,7 +295,9 @@ class ClassNSectionPage(QFrame):
         add_class_form = AddClassForm(reload_class_callback=cls_list.load_classes)
         vertical_area_layout.addWidget(add_class_form)
 
+        # attendance_sheet_db = ExcelFileWorker()
         sheet_preview = AttendanceSheetPreview()
+        cls_list.on_click_atd_sheet = sheet_preview.load_data
         vertical_area_layout.addWidget(sheet_preview, stretch=1)
 
         bi_area.addWidget(vertical_area)
