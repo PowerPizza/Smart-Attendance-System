@@ -6,6 +6,7 @@ from PyQt5.QtGui import QColor, QIcon
 from additional_widgets import *
 from class_n_section import ClassNSectionPage
 from students_page import StudentsPage
+from attendance_page import AttendancePage
 from app_constants import *
 from excel_functions import *
 
@@ -75,7 +76,7 @@ class MainApplication(QApplication):
 
         attendance = QAction("Attendance", self.main_window)
         attendance.setCheckable(True)
-        attendance.triggered.connect(lambda: self.onChangeWindow(attendance, QWidget()))
+        attendance.triggered.connect(lambda: self.onChangeWindow(attendance, AttendancePage()))
         tool_bar.addAction(attendance)
 
         reports = QAction("Reports", self.main_window)
