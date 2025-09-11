@@ -115,7 +115,6 @@ class MainApplication(QApplication):
         if w:
             w.deleteLater()
         self.content_.addWidget(win_widget)
-
         # change window code here...
 
     def run(self):

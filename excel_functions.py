@@ -37,7 +37,16 @@ class ExcelFileWorker:
         return [item.value for item in self.ws.iter_cols(col_idx+1, col_idx+1, 0, 0).__next__()]
 
     def getHeaderLabels(self):
-        return list(map(lambda itm: str(itm.date()) if isinstance(itm, datetime) else str(itm), self.getRowByIndex(self.header_column_idx)))
+        return list(map(lambda itm: str(datetime.strftime(itm.date(), '%d-%m-%Y')) if isinstance(itm, datetime) else str(itm), self.getRowByIndex(self.header_column_idx)))
+
+    def selectRowByFilter(self, include_only: list, row_idx):
+        header_cols = self.getHeaderLabels()
+        value_cols = self.ws.iter_rows(row_idx+1, row_idx+1, 0, 0).__next__()
+        col_idx = 0
+        for header_col, value_col in zip(header_cols, value_cols):
+            if header_col in include_only:
+                yield [value_col.value, (row_idx, col_idx)]  # returns value to the column as well as column's actual position in excel sheet.
+            col_idx += 1
 
     def appendRow(self, data_):
         self.ws.append(data_)
@@ -111,4 +120,5 @@ if __name__ == '__main__':
     # print(getColumnByIndex("tests/File.xlsx", 2))
     # print(safe_max([1, 2, "122", "012", "anc", "22a", "12"]))
     ed = ExcelFileWorker("tests/File.xlsx")
-    ed.updateByLocation(0, 0, "HELLO", True)
+    ed.selectRowByFilter(["Name", "Class"], 1)
+    # ed.updateByLocation(0, 0, "HELLO", True)

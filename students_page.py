@@ -85,7 +85,7 @@ class AddStudentForm(QFrame):
         layout_.addWidget(header_)
         # ------------------------ HEADER END ---------------------------
 
-        # ------------------------ FORM ---------------------------
+        # ------------------------ FORM PART 1 ---------------------------
         self.form_ = form_ = QWidget()
         form_.setObjectName("add_student_form")
         form_.setVisible(False)
@@ -118,6 +118,10 @@ class AddStudentForm(QFrame):
         add_student_btn.setCursor(Qt.PointingHandCursor)
         form_layout.addWidget(add_student_btn, 3, 0, 1, 2, Qt.AlignCenter)
         layout_.addWidget(form_, stretch=1)
+        # ------------------------ FORM PART 1 END ---------------------------
+
+        # ------------------------ FORM PART 2 ---------------------------
+
         # ------------------------ FORM END ---------------------------
 
     def on_dropdown_click(self):
@@ -227,13 +231,10 @@ class StudentsTable(QFrame):
                     data_item = QTableWidgetItem(data_)
                 data_item.setTextAlignment(Qt.AlignCenter)
                 self.table_.setItem(x, idx_, data_item)
-            def create_delete_btn():
-                x_copy = x
-                delete_btn = QImageView("icons/delete_icon.svg")
-                delete_btn.setAlignment(Qt.AlignCenter)
-                delete_btn.on_click = lambda : self.onDelete(x_copy)
-                self.table_.setCellWidget(x, idx_+1, delete_btn)
-            create_delete_btn()
+            delete_btn = QImageView("icons/delete_icon.svg")
+            delete_btn.setAlignment(Qt.AlignCenter)
+            delete_btn.on_click = lambda x_copy=x: self.onDelete(x_copy)
+            self.table_.setCellWidget(x, idx_+1, delete_btn)
 
     def onDelete(self, row_idx):
         conf_ = MessageBox.ask_question("Do you really want to permanently delete this entry?")

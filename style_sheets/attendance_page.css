@@ -5,6 +5,13 @@ QScrollBar:vertical {
 QScrollBar::handle:vertical {
     background-color: #6b6b6b;
 }
+QScrollBar:horizontal {
+    background-color: #949494;
+    height: 6px;
+}
+QScrollBar::handle:horizontal {
+    background-color: #6b6b6b;
+}
 
 #attendance_page_body {
     background-color: #1f2121;
@@ -21,6 +28,10 @@ QScrollBar::handle:vertical {
 }
 
 #attendance_page_body #record_table_area #filters_area {
+    border: 1px solid transparent;
+    border-bottom: 1px solid gray;
+    padding-bottom: 10px;
+    margin-bottom: 5px;
 }
 #attendance_page_body #record_table_area #filters_area QGroupBox{
     border: 1px solid gray;
@@ -35,8 +46,9 @@ QScrollBar::handle:vertical {
     position: relative;
     left: 5px;
 }
+
 #attendance_page_body #record_table_area #filters_area  #cls_n_sec_select,
-#attendance_page_body #record_table_area #filters_area  #date_select {
+#attendance_page_body #record_table_area #filters_area QComboBox {
     background-color: transparent;
     color: white;
     border: 1px solid gray;
@@ -54,15 +66,6 @@ QScrollBar::handle:vertical {
     border: 1px solid gray;
     padding: 5px;
     border-radius: 5px;
-}
-#attendance_page_body #record_table_area #filters_area #show_all_opt::indicator {
-    width: 20px;
-    height: 20px;
-    border: 1px solid gray;
-    border-radius: 5px;
-}
-#attendance_page_body #record_table_area #filters_area #show_all_opt::indicator:checked{
-    image: url("icons/check_icon.svg");
 }
 
 #attendance_page_body #record_table_area #filters_area #upto_days {
@@ -95,7 +98,10 @@ QScrollBar::handle:vertical {
 #attendance_page_body #record_table_area #filters_area #apply_filter_btn::pressed {
     border: 1px solid cyan;
 }
-
+#attendance_page_body #record_table_area #lbl_no_result{
+    color: white;
+    font-family: Arial;
+}
 
 
 #attendance_page_body #record_table_area #table_{
@@ -138,6 +144,8 @@ QScrollBar::handle:vertical {
     font-weight: bold;
     font-family: Arial;
     padding: 5px;
+    padding-left: 20px;
+    padding-right: 20px;
 }
 #attendance_page_body #record_table_area #table_ QHeaderView::up-arrow {
     image: url(icons/arrow_drop_down.svg);
