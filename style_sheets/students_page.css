@@ -19,7 +19,8 @@ QScrollBar::handle:vertical {
     border: 1px solid transparent;
     border-top: 1px solid gray;
 }
-#add_students_area #add_student_form #add_student_btn {
+#add_students_area #add_student_form #add_student_btn,
+#add_students_area #add_student_form #next_btn{
     background-color: #32b8c6;
     font-size: 16px;
     color: #13343b;
@@ -27,11 +28,21 @@ QScrollBar::handle:vertical {
     border-radius: 8px;
     padding: 10px;
 }
-#add_students_area #add_student_form #add_student_btn:hover {
+#add_students_area #add_student_form #add_student_btn:hover,
+#add_students_area #add_student_form #next_btn:hover{
     background-color: #2da6b2;
 }
-#add_students_area #add_student_form #add_student_btn:pressed {
+#add_students_area #add_student_form #add_student_btn:pressed,
+#add_students_area #add_student_form #next_btn:pressed{
     border: 1px solid cyan;
+}
+
+#student_main_body #add_students_area #header_ #back_btn {
+    background-color: #2b2b2b;
+    border-radius: 15px;
+}
+#student_main_body #add_students_area #header_ #back_btn:hover{
+    background-color: gray;
 }
 
 #student_main_body #add_students_area #heading_{
@@ -39,6 +50,63 @@ QScrollBar::handle:vertical {
     color: white;
     font-family: Arial;
     font-weight: 500;
+}
+
+#add_students_area #add_student_form[part="two"] #cam_preview {
+    background-color: transparent;
+    border: 1px solid gray;
+    border-radius: 5px;
+    color: white;
+    font-size: 14px;
+}
+#add_students_area #add_student_form[part="two"] #start_capture,
+#add_students_area #add_student_form[part="two"] #stop_capture{
+    background-color: #32b8c6;
+    font-size: 16px;
+    color: #13343b;
+    border: 0px;
+    border-radius: 8px;
+    padding: 10px;
+}
+#add_students_area #add_student_form[part="two"] #start_capture:hover {
+    background-color: #2da6b2;
+}
+#add_students_area #add_student_form[part="two"] #start_capture:pressed {
+    border: 1px solid cyan;
+}
+
+#add_students_area #add_student_form[part="two"] #stop_capture {
+    background-color: #eb2a3a;
+}
+#add_students_area #add_student_form[part="two"] #stop_capture:hover {
+    background-color: #d12634;
+}
+#add_students_area #add_student_form[part="two"] #stop_capture:pressed {
+    border: 1px solid red;
+}
+
+#add_students_area #add_student_form[part="two"] #lbl_instruction,
+#add_students_area #add_student_form[part="two"] #lbl_warning{
+    font-size: 16px;
+    color: white;
+}
+
+#add_students_area #add_student_form[part="two"] #capture_holder {
+    border: 1px solid gray;
+    border-radius: 4px;
+    margin-top: 5px;
+}
+#add_students_area #add_student_form[part="two"] #capture_holder:title{
+    font-size: 14px;
+    color: white;
+    position: relative;
+    bottom: 6px;
+    left: 7px;
+}
+#add_students_area #add_student_form[part="two"] #capture_holder QScrollArea,
+#add_students_area #add_student_form[part="two"] #capture_holder QWidget{
+    border: 0;
+    background-color: transparent;
 }
 
 #student_main_body #student_table_holder {

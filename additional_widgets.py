@@ -14,7 +14,7 @@ class QImageView(QLabel):
     size = (32, 32)
     on_click = None
 
-    def __init__(self, icon_path, size=(32, 32), parent=None):
+    def __init__(self, icon_path=None, size=(32, 32), parent=None):
         super().__init__(parent)
         self.size = size
         icon_ = QPixmap(icon_path)
@@ -23,6 +23,11 @@ class QImageView(QLabel):
     def setIcon(self, icon_path):
         icon_ = QPixmap(icon_path)
         self.setPixmap(icon_.scaled(*self.size, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+
+    def setIconFromBytes(self, image_bytes):
+        icon_ = QPixmap()
+        icon_.loadFromData(image_bytes)
+        self.setIcon(icon_.scaled(*self.size, Qt.KeepAspectRatio, Qt.SmoothTransformation))
 
     def mousePressEvent(self, ev):
         if callable(self.on_click):
