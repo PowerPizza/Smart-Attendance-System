@@ -59,6 +59,11 @@ QScrollBar::handle:vertical {
     color: white;
     font-size: 14px;
 }
+#add_students_area #add_student_form[part="two"] #capture_progress{
+    height: 15px;
+    margin: 5px;
+    color: blue;
+}
 #add_students_area #add_student_form[part="two"] #start_capture,
 #add_students_area #add_student_form[part="two"] #stop_capture{
     background-color: #32b8c6;
@@ -113,6 +118,11 @@ QScrollBar::handle:vertical {
     background-color: #262828;
     border: 1px solid gray;
     border-radius: 10px;
+}
+
+#student_main_body #student_table_holder #lbl_no_data {
+    color: white;
+    font-family: Arial;
 }
 
 #student_main_body #student_table_holder #table_{

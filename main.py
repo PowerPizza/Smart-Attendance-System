@@ -22,10 +22,13 @@ def setup_database():
         os.mkdir(AppConstant.DATA_DIRECTORY)
     if not os.path.exists(AppConstant.CLASS_DIRECTORY):
         os.mkdir(AppConstant.CLASS_DIRECTORY)
+    if not os.path.exists(AppConstant.ENCODINGS_DIRECTORY):
+        os.mkdir(AppConstant.ENCODINGS_DIRECTORY)
     if not os.path.exists(AppConstant.STUDENTS_DIRECTORY):
         os.mkdir(AppConstant.STUDENTS_DIRECTORY)
     if not os.path.exists(AppConstant.STUDENTS_FILE):
         createStudentsExcelFile(AppConstant.STUDENTS_FILE)
+
 
 class MainApplication(QApplication):
     main_window = None

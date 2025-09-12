@@ -1,16 +1,18 @@
 import os
 import threading
+from platform import processor
 
 import cv2
 import openpyxl
 from PyQt5.QtWidgets import *
 from additional_widgets import *
-from PyQt5.QtCore import Qt, QVersionNumber, QTimer, QMetaObject
+from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from PyQt5.QtGui import QIntValidator, QIcon
 from app_constants import AppConstant
 from excel_functions import *
 import face_recognition
-import numpy as np
+from qt_theading import ImageProcessingWorker
+import pickle
 
 class EntryField(QWidget):
     entry_input = None
@@ -46,7 +48,10 @@ class EntryField(QWidget):
         return self.entry_input.text()
 
     def setValue(self, value_):
-        self.entry_input.setText(value_)
+        if isinstance(self.entry_input, QComboBox):
+            self.entry_input.setCurrentText(value_)
+        else:
+            self.entry_input.setText(value_)
 
     def setSelectItems(self, select_items):
         self.entry_input.clear()
@@ -59,19 +64,18 @@ class AddStudentForm(QFrame):
     mobile_no_entry = None
     class_entry = None
     section_entry = None
+    user_face_encodings = None
     reload_table_callback = None
     std_db = None
     attndnc_db_manager = None
-    is_capturing = False
     td1 = None  # Thread 1
+    img_capture_worker = None  # Worker running on Thread 1
     image_holder_layout = None
-    image_views = None
 
     def __init__(self, std_db:ExcelFileWorker, attndnc_db_manager:AttendanceDBManager):
         super().__init__()
         self.std_db = std_db
         self.attndnc_db_manager = attndnc_db_manager
-        self.image_views = []
         self.setObjectName("add_students_area")
         layout_ = QVBoxLayout(self)
 
@@ -160,18 +164,25 @@ class AddStudentForm(QFrame):
         self.cam_preview.setFixedHeight(250)
         form2_layout.addWidget(self.cam_preview, 0, 0)
 
+        self.capture_progress = QProgressBar()
+        self.capture_progress.setObjectName("capture_progress")
+        self.capture_progress.setValue(0)
+        self.capture_progress.setFixedWidth(240)
+        self.capture_progress.setAlignment(Qt.AlignCenter)
+        form2_layout.addWidget(self.capture_progress, 1, 0, Qt.AlignHCenter)
+
         self.start_capture = QPushButton("Start Capturing")
         self.start_capture.setObjectName("start_capture")
         self.start_capture.setCursor(Qt.PointingHandCursor)
         self.start_capture.clicked.connect(self.onStartCapturing)
-        form2_layout.addWidget(self.start_capture, 1, 0)
+        form2_layout.addWidget(self.start_capture, 2, 0)
 
         self.stop_capture = QPushButton("Stop Capturing")
         self.stop_capture.setVisible(False)
         self.stop_capture.setObjectName("stop_capture")
         self.stop_capture.setCursor(Qt.PointingHandCursor)
         self.stop_capture.clicked.connect(self.onStopCapturing)
-        form2_layout.addWidget(self.stop_capture, 1, 0)
+        form2_layout.addWidget(self.stop_capture, 2, 0)
 
         lbl_area = QWidget()
         lbl_area_layout = QVBoxLayout(lbl_area)
@@ -191,18 +202,6 @@ class AddStudentForm(QFrame):
         image_holder = QWidget()
         self.image_holder_layout = QGridLayout(image_holder)
 
-        for i in range(3):
-            row_ = []
-            for j in range(5):
-                iv = QImageView(size=(100, 100))
-                iv.setFixedWidth(100)
-                iv.setFixedHeight(100)
-                iv.setObjectName("image_view_icco")
-                iv.setStyleSheet("#image_view_icco {border: 1px solid gray; border-radius: 3px;}")
-                self.image_holder_layout.addWidget(iv, i, j)
-                row_.append(iv)
-            self.image_views.append(row_)
-
         scrollable_ = QScrollArea(captured_holder)
         scrollable_.setWidget(image_holder)
         scrollable_.setWidgetResizable(True)
@@ -211,20 +210,21 @@ class AddStudentForm(QFrame):
 
         form2_layout.addWidget(lbl_area, 0, 1, 2, 1)
 
-        add_student_btn = QPushButton("Add Student")
+        self.add_student_btn = add_student_btn = QPushButton("Add Student")
+        add_student_btn.setVisible(False)
         add_student_btn.setObjectName("add_student_btn")
         add_student_btn.setFixedWidth(300)
         add_student_btn.clicked.connect(self.on_submit)
         add_student_btn.setCursor(Qt.PointingHandCursor)
-        form2_layout.addWidget(add_student_btn, 3, 0, 1, 2, Qt.AlignCenter)
+        form2_layout.addWidget(add_student_btn, 2, 0, 1, 2, Qt.AlignCenter)
 
         layout_.addWidget(self.form_2, stretch=1)
         # ------------------------ FORM PART 2 END ---------------------------
 
     def on_back(self):
-        self.form_.setVisible(True)
         self.form_2.setVisible(False)
         self.back_btn.setVisible(False)
+        self.form_.setVisible(True)
 
     def on_dropdown_open(self):
         self.auto_filler()
@@ -251,16 +251,41 @@ class AddStudentForm(QFrame):
         self.section_entry.setSelectItems(set(sections_))
 
     def on_next_step(self):
+        data_to_add = [self.adm_no_entry.getValue(), self.name_entry.getValue(), self.father_name_entry.getValue(), self.mobile_no_entry.getValue(), self.class_entry.getValue(), self.section_entry.getValue()]
+        if '' in data_to_add:
+            MessageBox().show_message("Error", "All entries are required please fill them all and try again.", "error")
+            return
         self.back_btn.setVisible(True)
         self.form_.setVisible(False)
         self.form_2.setVisible(True)
 
+    def clear_all_form(self):
+        self.name_entry.setValue("")
+        self.father_name_entry.setValue("")
+        self.mobile_no_entry.setValue("")
+        self.class_entry.setValue("")
+        self.section_entry.setValue("")
+        self.cam_preview.setIcon(QIcon())
+        self.capture_progress.setValue(0)
+        self.start_capture.setVisible(True)
+        clearLayout(self.image_holder_layout)
+        self.add_student_btn.setVisible(False)
+        self.lbl_instruction.setText("● Instruction : Please see in camera and keep changing your face expressions and face angle.")
+        self.lbl_warning.setText("")
+        try:
+            self.img_capture_worker.stop()
+            self.img_capture_worker = None
+            self.td1.quit()
+            self.td1.wait()
+            self.td1.deleteLater()
+            self.td1 = None
+        except BaseException as e:
+            print(e)
+        self.on_back()
+
     def on_submit(self):
         try:
             data_to_add = [self.adm_no_entry.getValue(), self.name_entry.getValue(), self.father_name_entry.getValue(), self.mobile_no_entry.getValue(), self.class_entry.getValue(), self.section_entry.getValue()]
-            if '' in data_to_add:
-                MessageBox().show_message("Error", "All entries are required please fill them all and try again.", "error")
-                return
             cls_ = f"{self.class_entry.getValue()}-{self.section_entry.getValue()}"
             if cls_ not in os.listdir(AppConstant.CLASS_DIRECTORY):
                 conf_ = MessageBox.ask_question(f"Class ‘{cls_}’ was not found. Would you like to create it so the student can be added?")
@@ -272,92 +297,98 @@ class AddStudentForm(QFrame):
                 os.mkdir(os.path.join(AppConstant.CLASS_DIRECTORY, cls_))
                 self.attndnc_db_manager.createThisYearAttendanceSheet(cls_)
             data_to_add[0] = int(str(data_to_add[0]))
+            enc_file_name = f"faceOf{data_to_add[0]}.pkl"
+            data_to_add.append(enc_file_name)
+            with open(os.path.join(AppConstant.ENCODINGS_DIRECTORY, enc_file_name), "wb") as fp:
+                pickle.dump({"admission_no": data_to_add[0], "encodings": self.user_face_encodings}, fp)
             self.std_db.appendRow(data_to_add)
             self.auto_filler()
             self.attndnc_db_manager.insertNewStudent(cls_, data_to_add[0], data_to_add[1])
             if callable(self.reload_table_callback):
                 self.reload_table_callback()
+            self.user_face_encodings = None
+            self.clear_all_form()
             MessageBox().show_message("Info", "Successfully added a student.", "info")
         except BaseException as e:
             MessageBox().show_message("Error", f"Failed to add student entry.\nError : {e}", "error")
 
     def onStartCapturing(self):
-        self.is_capturing = True
+        def on_load_img_preview(png_data):
+            pix_map = QPixmap()
+            pix_map.loadFromData(png_data)
+            self.cam_preview.setIcon(QIcon(pix_map))
+            self.cam_preview.setIconSize(pix_map.size())
 
-        def start_capture():
-            try:
-                cam_ = cv2.VideoCapture(0)
-                old_face_encd = None
-                i = j = 0
-                while self.is_capturing:
-                    ret_, frame_ = cam_.read()
-                    if not ret_:
-                        print("Failed to get image")
-                        continue
+        def on_simple_messages(data_):
+            if data_["type"] == "error":
+                print(data_["msg"])
+            elif data_["type"] == "warn":
+                self.lbl_warning.setText(data_["msg"])
+            elif data_["type"] == "info":
+                self.lbl_instruction.setText(data_["msg"])
 
-                    face_loc = face_recognition.face_locations(frame_)
-                    if len(face_loc):
-                        self.lbl_warning.setText("")
-                        face_encd = face_recognition.face_encodings(frame_, face_loc)
-                        if old_face_encd is None:
-                            old_face_encd = face_encd
-                            continue
+        i = j = 0
+        img_to_be_capture = 10
+        captured_ = 1
+        def on_captured(img_):
+            nonlocal  i, j, captured_
+            iv = QImageView(size=(100, 100))
+            iv.setFixedWidth(100)
+            iv.setFixedHeight(100)
+            iv.setIconFromBytes(img_)
+            iv.setObjectName("image_view_icco")
+            iv.setStyleSheet("#image_view_icco {border: 1px solid gray; border-radius: 3px;}")
+            self.image_holder_layout.addWidget(iv, i, j)
 
-                        face_diff = face_recognition.face_distance(np.array(old_face_encd), np.array(face_encd))
-                        if face_diff[0] == 0 or face_diff[0] > 0.6:
-                            self.lbl_warning.setText("⚠ Face not matches with previous captures.")
-                            continue
-                        else:
-                            success_, png_ = cv2.imencode(".png", frame_)
-                            if success_:
-                                self.image_views[i][j].setIconFromBytes(png_)
+            self.capture_progress.setValue(int((captured_/img_to_be_capture)*100))
+            if captured_ == img_to_be_capture:
+                self.lbl_instruction.setText("● Successfully captured all images.")
+                self.img_capture_worker.stop()
+                self.stop_capture.setVisible(False)
+                self.add_student_btn.setVisible(True)
+                return
+            captured_ += 1
+            if j == 4:
+                i += 1
+                j = 0
+            else:
+                j += 1
 
-                                if i == len(self.image_views)-1 and j == len(self.image_views[0])-1:
-                                    self.onStopCapturing()
-                                    break
-                                print(i, j)
+        def on_all_encodings(data_):
+            self.user_face_encodings = data_
 
-                                if j == len(self.image_views[0]) - 1:
-                                    i += 1
-                                    j = 0
-                                else:
-                                    j += 1
-
-                            face_loc = face_loc[0]
-                            start_ = (face_loc[3], face_loc[0])
-                            end_ = (face_loc[1], face_loc[2])
-                            cv2.rectangle(frame_, start_, end_, (0, 255, 0), 2)
-                        old_face_encd = face_encd
-                    else:
-                        self.lbl_warning.setText("⚠ No face detected.")
-
-                    success_, png_ = cv2.imencode(".png", frame_)
-                    if not success_:
-                        continue
-                    pix_map = QPixmap()
-                    pix_map.loadFromData(png_)
-                    self.cam_preview.setIcon(QIcon(pix_map))
-                    self.cam_preview.setIconSize(pix_map.size())
-            except BaseException as e:
-                print(e)
-        self.td1 = threading.Thread(target=start_capture)
-        self.td1.start()
-        # QTimer.singleShot(0, start_capture)
+        try:
+            self.td1 = QThread()
+            self.img_capture_worker = ImageProcessingWorker()
+            self.img_capture_worker.moveToThread(self.td1)
+            self.td1.started.connect(self.img_capture_worker.run)
+            self.img_capture_worker.msg_channel.connect(on_simple_messages)
+            self.img_capture_worker.captured.connect(on_captured)
+            self.img_capture_worker.preview_img_messaged.connect(on_load_img_preview)
+            self.img_capture_worker.encodings_output.connect(on_all_encodings)
+            # self.img_capture_worker.final_output.connect(print)
+            self.td1.finished.connect(lambda : self.onStopCapturing(True))
+            self.td1.start()
+        except BaseException as e:
+            print(e)
         self.start_capture.setVisible(False)
         self.stop_capture.setVisible(True)
 
-    def onStopCapturing(self):
-        self.is_capturing = False
-        if self.td1:
-            while self.td1.is_alive():
-                pass
-            self.td1 = None
+    def onStopCapturing(self, only_ui_update=False):
+        if not only_ui_update:
+            self.img_capture_worker.stop()
+            self.td1.quit()
+        self.lbl_instruction.setText("● Instruction : Please see in camera and keep changing your face expressions and face angle.")
+        self.lbl_warning.setText("")
+        self.capture_progress.setValue(0)
         self.cam_preview.setIcon(QIcon())
         self.stop_capture.setVisible(False)
         self.start_capture.setVisible(True)
+        clearLayout(self.image_holder_layout)
 
 class StudentsTable(QFrame):
     std_db = None
+    is_table_loading = False
 
     def __init__(self, std_db:ExcelFileWorker):
         super().__init__()
@@ -365,7 +396,13 @@ class StudentsTable(QFrame):
         layout_ = QVBoxLayout(self)
         self.setObjectName("student_table_holder")
 
+        self.lbl_no_data = QLabel("<h2>No students found.</h2>")
+        self.lbl_no_data.setObjectName("lbl_no_data")
+        self.lbl_no_data.setVisible(True)
+        layout_.addWidget(self.lbl_no_data, alignment=Qt.AlignTop | Qt.AlignCenter)
+
         self.table_ = QTableWidget(self)
+        self.table_.setVisible(False)
         self.table_.setObjectName("table_")
         self.table_.setShowGrid(False)
         self.load_data()
@@ -398,12 +435,13 @@ class StudentsTable(QFrame):
         self.table_.setHorizontalHeaderLabels(self.std_db.getHeaderLabels()+["Delete"])
 
         if total_rows-1 <= 0:
-            self.table_.setRowCount(1)
-            no_item_text = QTableWidgetItem(str("No students found."))
-            no_item_text.setTextAlignment(Qt.AlignCenter)
-            self.table_.setItem(0, 0, no_item_text)
-            self.table_.setSpan(0, 0, 1, total_cols)
+            self.table_.setVisible(False)
+            self.lbl_no_data.setVisible(True)
             return
+        self.is_table_loading = True
+
+        self.lbl_no_data.setVisible(False)
+        self.table_.setVisible(True)
 
         for x in range(total_rows-1):
             row_ = self.std_db.getRowByIndex(x+1)
@@ -420,6 +458,7 @@ class StudentsTable(QFrame):
             delete_btn.setAlignment(Qt.AlignCenter)
             delete_btn.on_click = lambda x_copy=x: self.onDelete(x_copy)
             self.table_.setCellWidget(x, idx_+1, delete_btn)
+        self.is_table_loading = False
 
     def onDelete(self, row_idx):
         conf_ = MessageBox.ask_question("Do you really want to permanently delete this entry?")
@@ -428,6 +467,8 @@ class StudentsTable(QFrame):
             self.load_data()
 
     def onEdit(self, row_, col_):
+        if self.is_table_loading:
+            return
         try:
             new_value = self.table_.item(row_, col_).text()
             if col_ == self.std_db.primary_column_idx:

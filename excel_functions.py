@@ -72,7 +72,7 @@ def createStudentsExcelFile(file_name):
     wb = Workbook()
     ws = wb.active
 
-    headers_ = ["Admission No.", "Student Name", "Father Name", "Mobile No.", "Class", "Section"]
+    headers_ = ["Admission No.", "Student Name", "Father Name", "Mobile No.", "Class", "Section", "Face Encoding File"]
     ws.append(headers_)
     for i in range(1, len(headers_)+1):
         ws.cell(1, i).font = Font(bold=True, size=12)
@@ -103,7 +103,10 @@ class AttendanceDBManager:
 
     def insertNewStudent(self, cls_sec_dir, std_adm_no:int, std_name):
         attendance_sheet_path = os.path.join(self.CLASS_DIRECTORY, cls_sec_dir, f"{datetime.now().year}.xlsx")
-        wb = openpyxl.open(attendance_sheet_path)
+        if os.path.exists(attendance_sheet_path):
+            wb = openpyxl.open(attendance_sheet_path)
+        else:
+            wb = openpyxl.Workbook()
         ws = wb.active
         ws.append([std_adm_no, std_name])
         wb.save(attendance_sheet_path)
