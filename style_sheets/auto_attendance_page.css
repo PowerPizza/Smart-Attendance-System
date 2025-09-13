@@ -1,0 +1,62 @@
+#auto_attendance_body {
+    background-color: #1f2121;
+}
+
+#auto_attendance_body #content_area {
+    background-color: #262828;
+    border: 1px solid gray;
+    border-radius: 10px;
+}
+
+#auto_attendance_body #content_area #title_ {
+    color: white;
+    margin: 10px;
+}
+
+#auto_attendance_body #content_area #cam_preview{
+    border: 1px solid gray;
+    border-radius: 5px;
+}
+
+#auto_attendance_body #content_area #log_area {
+    border: 1px solid gray;
+    border-radius: 5px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+#auto_attendance_body #content_area #log_area QLabel {
+    font-size: 16px;
+    font-family: Arial;
+    color: white;
+}
+
+#auto_attendance_body #content_area #btn {
+    background-color: #32b8c6;
+    color: black;
+    border: none;
+    border-radius: 8px;
+    padding: 8px;
+    font-size: 16px;
+    font-family: Arial;
+    margin-bottom: 10px;
+}
+#auto_attendance_body #content_area #btn[ui="red"] {
+    background-color: #e65348;
+}
+#auto_attendance_body #content_area #btn:hover {
+    background-color: #2da6b2;
+}
+#auto_attendance_body #content_area #btn[ui="red"]:hover {
+    background-color: #cd3a31;
+}
+
+#auto_attendance_body #content_area #admin_login {
+    font-size: 16px;
+    color: #2da6b2;
+    background-color: transparent;
+    border: 0px;
+}
+#auto_attendance_body #content_area #admin_login:hover {
+    color: #2c9ea9;
+}

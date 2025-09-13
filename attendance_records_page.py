@@ -205,6 +205,8 @@ class AttendanceRecordTable(QFrame):
                     data_item.setData(Qt.DisplayRole, int(data_))
                 else:
                     data_item = QTableWidgetItem(str(data_))
+                if idx_ < 2:  # disabling editing of admission no and student name columns.
+                    data_item.setFlags(data_item.flags() & ~Qt.ItemIsEditable)
                 data_item.setTextAlignment(Qt.AlignCenter)
                 data_item.location_ = pos_  # setting position as instace variable so that even after table filter the position stays absolute as mapped with excel sheet
                 self.table_.setItem(x, idx_+1, data_item)
@@ -238,10 +240,10 @@ class AttendanceRecordTable(QFrame):
             self.atd_sheet_db.save()
             self.load_data()
 
-class AttendancePage(QFrame):
+class AttendanceRecordsPage(QFrame):
     def __init__(self):
         super().__init__()
-        with open("style_sheets/attendance_page.css", "r") as fp:
+        with open("style_sheets/attendance_records_page.css", "r") as fp:
             self.setStyleSheet(fp.read())
         self.setObjectName("attendance_page_body")
         layout_ = QVBoxLayout(self)
@@ -254,7 +256,7 @@ if __name__ == '__main__':
     app_ = QApplication([])
 
     win_ = QMainWindow()
-    ele_ = AttendancePage()
+    ele_ = AttendanceRecordsPage()
     win_.setCentralWidget(ele_)
     win_.show()
 

@@ -16,6 +16,18 @@
     font-family: Arial;
     color: white;
 }
+#main_header #logout_btn {
+    background-color: #e65348;
+    color: black;
+    border: none;
+    border-radius: 8px;
+    padding: 8px;
+    font-size: 16px;
+    font-family: Arial;
+}
+#main_header #logout_btn:hover {
+    background-color: #cd3a31;
+}
 
 #tool_bar{
     border: 1px solid transparent;

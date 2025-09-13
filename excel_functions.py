@@ -27,6 +27,12 @@ class ExcelFileWorker:
     def getNoOfColumns(self):
         return self.ws.max_column
 
+    def getPrimaryColumnValues(self, include_column_name=False):
+        if include_column_name:
+            return self.getColumnByIndex(self.primary_column_idx)
+        else:
+            return self.getColumnByIndex(self.primary_column_idx)[1:]
+
     def getLastRow(self):
         return [col_.value for col_ in self.ws.iter_rows(self.ws.max_row, self.ws.max_row, 0, 0).__next__()]
 
@@ -50,6 +56,17 @@ class ExcelFileWorker:
 
     def appendRow(self, data_):
         self.ws.append(data_)
+        self.save()
+
+    def appendColumn(self, data_):
+        last_column = self.getNoOfColumns() + 1
+        for idx_, item in enumerate(data_):
+            self.ws.cell(idx_+1, last_column, item)
+        self.save()
+
+    def insertColumn(self, col_idx, data_):
+        for idx_, item in enumerate(data_):
+            self.ws.cell(idx_ + 1, col_idx, item)
         self.save()
 
     def deleteRowByIndex(self, row_idx):
@@ -103,10 +120,9 @@ class AttendanceDBManager:
 
     def insertNewStudent(self, cls_sec_dir, std_adm_no:int, std_name):
         attendance_sheet_path = os.path.join(self.CLASS_DIRECTORY, cls_sec_dir, f"{datetime.now().year}.xlsx")
-        if os.path.exists(attendance_sheet_path):
-            wb = openpyxl.open(attendance_sheet_path)
-        else:
-            wb = openpyxl.Workbook()
+        if not os.path.exists(attendance_sheet_path):
+            self.createThisYearAttendanceSheet(cls_sec_dir)
+        wb = openpyxl.open(attendance_sheet_path)
         ws = wb.active
         ws.append([std_adm_no, std_name])
         wb.save(attendance_sheet_path)
@@ -123,5 +139,6 @@ if __name__ == '__main__':
     # print(getColumnByIndex("tests/File.xlsx", 2))
     # print(safe_max([1, 2, "122", "012", "anc", "22a", "12"]))
     ed = ExcelFileWorker("tests/File.xlsx")
-    ed.selectRowByFilter(["Name", "Class"], 1)
+    print(ed.insertColumn(6, ["GRASS", "GHAS", "MINECRAFT", "JOLY"]))
+    # ed.selectRowByFilter(["Name", "Class"], 1)
     # ed.updateByLocation(0, 0, "HELLO", True)

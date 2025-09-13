@@ -1,16 +1,10 @@
 import os
-import threading
-from platform import processor
-
-import cv2
-import openpyxl
 from PyQt5.QtWidgets import *
 from additional_widgets import *
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
+from PyQt5.QtCore import Qt, QThread
 from PyQt5.QtGui import QIntValidator, QIcon
 from app_constants import AppConstant
 from excel_functions import *
-import face_recognition
 from qt_theading import ImageProcessingWorker
 import pickle
 
@@ -251,13 +245,18 @@ class AddStudentForm(QFrame):
         self.section_entry.setSelectItems(set(sections_))
 
     def on_next_step(self):
-        data_to_add = [self.adm_no_entry.getValue(), self.name_entry.getValue(), self.father_name_entry.getValue(), self.mobile_no_entry.getValue(), self.class_entry.getValue(), self.section_entry.getValue()]
-        if '' in data_to_add:
-            MessageBox().show_message("Error", "All entries are required please fill them all and try again.", "error")
-            return
-        self.back_btn.setVisible(True)
-        self.form_.setVisible(False)
-        self.form_2.setVisible(True)
+        try:
+            data_to_add = [self.adm_no_entry.getValue(), self.name_entry.getValue(), self.father_name_entry.getValue(), self.mobile_no_entry.getValue(), self.class_entry.getValue(), self.section_entry.getValue()]
+            if '' in data_to_add:
+                MessageBox().show_message("Error", "All entries are required please fill them all and try again.", "error")
+                return
+            data_to_add[0] = int(str(data_to_add[0]))
+            assert data_to_add[0] not in self.std_db.getPrimaryColumnValues(), f"Admission no. '{data_to_add[0]}' already exists."  # Throws error as : [12 not in [11, 12, 13] -> False -> Assert Error]
+            self.back_btn.setVisible(True)
+            self.form_.setVisible(False)
+            self.form_2.setVisible(True)
+        except BaseException as e:
+            MessageBox().show_message("Error", f"Can't proceed due to error.\nError : {e}", "error")
 
     def clear_all_form(self):
         self.name_entry.setValue("")
@@ -286,17 +285,17 @@ class AddStudentForm(QFrame):
     def on_submit(self):
         try:
             data_to_add = [self.adm_no_entry.getValue(), self.name_entry.getValue(), self.father_name_entry.getValue(), self.mobile_no_entry.getValue(), self.class_entry.getValue(), self.section_entry.getValue()]
+            data_to_add[0] = int(str(data_to_add[0]))
             cls_ = f"{self.class_entry.getValue()}-{self.section_entry.getValue()}"
             if cls_ not in os.listdir(AppConstant.CLASS_DIRECTORY):
                 conf_ = MessageBox.ask_question(f"Class ‘{cls_}’ was not found. Would you like to create it so the student can be added?")
                 if not conf_:
                     return
                 if cls_.count("-") != 1:
-                    MessageBox().show_message("Error", "class and section names must not contain '-'.\nClass creation cancled - Failed to add student.", "error")
+                    MessageBox().show_message("Error", "class and section names must not contain '-'.\nClass creation cancelled - Failed to add student.", "error")
                     return
                 os.mkdir(os.path.join(AppConstant.CLASS_DIRECTORY, cls_))
                 self.attndnc_db_manager.createThisYearAttendanceSheet(cls_)
-            data_to_add[0] = int(str(data_to_add[0]))
             enc_file_name = f"faceOf{data_to_add[0]}.pkl"
             data_to_add.append(enc_file_name)
             with open(os.path.join(AppConstant.ENCODINGS_DIRECTORY, enc_file_name), "wb") as fp:
@@ -426,6 +425,7 @@ class StudentsTable(QFrame):
         layout_.addWidget(self.table_)
 
     def load_data(self):
+        self.table_.setSortingEnabled(False)
         self.table_.clear()
         total_rows = self.std_db.getNoOfRows()
         total_cols = self.std_db.getNoOfColumns()
@@ -437,6 +437,7 @@ class StudentsTable(QFrame):
         if total_rows-1 <= 0:
             self.table_.setVisible(False)
             self.lbl_no_data.setVisible(True)
+            self.table_.setSortingEnabled(True)
             return
         self.is_table_loading = True
 
@@ -452,17 +453,24 @@ class StudentsTable(QFrame):
                     data_item.setData(Qt.DisplayRole, int(data_))
                 else:
                     data_item = QTableWidgetItem(data_)
+                if idx_ == 6:  # Disabled editing of Encoding file name column.
+                    data_item.setFlags(data_item.flags() & ~Qt.ItemIsEditable)
                 data_item.setTextAlignment(Qt.AlignCenter)
                 self.table_.setItem(x, idx_, data_item)
             delete_btn = QImageView("icons/delete_icon.svg")
             delete_btn.setAlignment(Qt.AlignCenter)
             delete_btn.on_click = lambda x_copy=x: self.onDelete(x_copy)
             self.table_.setCellWidget(x, idx_+1, delete_btn)
+        self.table_.setSortingEnabled(True)
         self.is_table_loading = False
 
     def onDelete(self, row_idx):
         conf_ = MessageBox.ask_question("Do you really want to permanently delete this entry?")
         if conf_:
+            encoding_file_ = self.std_db.getRowByIndex(row_idx+1)
+            encoding_file_path = os.path.join(AppConstant.ENCODINGS_DIRECTORY, encoding_file_[-1])
+            if os.path.exists(encoding_file_path):
+                os.remove(encoding_file_path)
             self.std_db.deleteRowByIndex(row_idx+1)
             self.load_data()
 
