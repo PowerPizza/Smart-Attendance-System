@@ -1,0 +1,44 @@
+#login_screen {
+    background-color: #0f1113;
+}
+#login_screen #card {
+    background-color: #1a1d21;
+    border-radius: 12px;
+    padding: 20px;
+}
+#login_screen #card #title {
+    color: white;
+    font-family: Arial;
+}
+#login_screen #card #entry {
+    background-color: #0f1113;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 8px;
+    color: white;
+    font-size: 16px;
+}
+#login_screen #card #entry:focus {
+    border: 1px solid #00cfff;
+}
+#login_screen #card #login_btn {
+    background-color: #32b8c6;
+    color: black;
+    border: none;
+    border-radius: 8px;
+    padding: 8px;
+    font-size: 16px;
+    font-family: Arial;
+}
+#login_screen #card #login_btn:hover {
+    background-color: #2da6b2;
+}
+#login_screen #card #mark_attendance {
+    font-size: 16px;
+    color: #2c9ea9;
+    background-color: transparent;
+    border: 0px;
+}
+#login_screen #card #mark_attendance:hover {
+    color: #134d87;
+}
