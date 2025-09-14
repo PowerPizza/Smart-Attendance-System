@@ -1,4 +1,8 @@
 /myenv
 /tests
-plan.png
-example_ui.webp
+other_files/plan.png
+other_files/example_ui.webp
+/build
+/dist
+*.spec
+/other_files
