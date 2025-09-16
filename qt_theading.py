@@ -65,3 +65,50 @@ class ImageProcessingWorker(QThread):
 
     def stop(self):
         self.is_capturing = False
+
+
+class LiveFaceRecorder(QThread):
+    face_img_channel = pyqtSignal(np.ndarray)
+    face_encoding_channel = pyqtSignal(np.ndarray)
+    msg_channel = pyqtSignal(dict)
+    is_running = False
+    is_paused = False
+
+    @pyqtSlot()
+    def run(self):
+        try:
+            self.is_running = True
+            cam_ = cv2.VideoCapture(0)
+            while self.is_running:
+                if self.is_paused:
+                    continue
+                ret, frame_ = cam_.read()
+                if not ret:
+                    self.msg_channel.emit("Image capture failed!")
+                    continue
+                loc_ = face_recognition.face_locations(frame_, model="hog")
+                if len(loc_):
+                    face_ = face_recognition.face_encodings(frame_, loc_)
+                    for item in face_:
+                        self.face_encoding_channel.emit(item)
+
+                    face_loc = loc_[0]
+                    start_ = (face_loc[3], face_loc[0])
+                    end_ = (face_loc[1], face_loc[2])
+                    cv2.rectangle(frame_, start_, end_, (0, 255, 0), 2)
+                    success_, png_ = cv2.imencode(".png", frame_)
+                    if success_:
+                        self.face_img_channel.emit(png_)
+                else:
+                    self.msg_channel.emit({"type": "warn", "msg": "No face detected!"})
+        except BaseException as e:
+            print(e)
+
+    def stop(self):
+        self.is_running = False
+
+    def pause(self):
+        self.is_paused = True
+
+    def resume(self):
+        self.is_paused = False

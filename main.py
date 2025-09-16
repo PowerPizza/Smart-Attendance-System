@@ -9,6 +9,7 @@ from admin_panel import AdminPanel
 from auto_attendance_page import AutoAttendancePage
 from excel_functions import *
 from app_constants import *
+from database_manager import MsAccessDriver
 
 def create_shadow(blur_radius:int, color_hex:str, offset_xy:tuple=(0, 0), parent=None):
     shadow_ = QGraphicsDropShadowEffect(parent)
@@ -33,11 +34,13 @@ class MainApplication(QApplication):
     main_window = None
     _screen_w = None
     _screen_h = None
+    db_ = None
 
     def __init__(self):
         super().__init__([])
         try:
             setup_database()
+            self.db_ = MsAccessDriver()  # initializing database, it will auto-create required tables etc, if not exits.
         except BaseException as e:
             MessageBox().show_message("Error", f"An error occur while setting up database.\nError : {e}", "error")
             exit(0)
@@ -63,7 +66,7 @@ class MainApplication(QApplication):
         self.main_window.setCentralWidget(panel_)
 
     def open_admin_panel(self):
-        admin_panel = AdminPanel(self.main_window)
+        admin_panel = AdminPanel(self.main_window, db_instance=self.db_)
         admin_panel.setLogoutCommand(self.create_login_panel)
         self.main_window.setCentralWidget(admin_panel)
 

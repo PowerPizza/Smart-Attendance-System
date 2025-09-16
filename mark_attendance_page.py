@@ -1,29 +1,37 @@
-import os
-import openpyxl
 from PyQt5.QtWidgets import *
 from additional_widgets import *
 from PyQt5.QtCore import Qt, QVersionNumber, QDate
 from PyQt5.QtGui import QIntValidator, QIcon
 from app_constants import AppConstant
 import datetime as real_datetime
-from excel_functions import ExcelFileWorker
+from database_manager import MsAccessDriver
 
 class Header(QFrame):
     f_date_entries = None
+    db_instance = None
 
-    def __init__(self, parent=None):
+    def __init__(self, db_instance:MsAccessDriver, parent=None):
         super().__init__(parent)
         self.f_date_entries = []
+        self.db_instance = db_instance
         self.setObjectName("header_")
         layout_ = QHBoxLayout(self)
 
-        cls_n_sec_area = QGroupBox()
-        cls_n_sec_area.setTitle("Select Class-Section")
-        cls_n_sec_filter_layout = QHBoxLayout(cls_n_sec_area)
-        self.f_select_cls_n_sec = select_cls_n_sec = QComboBox()
-        select_cls_n_sec.setObjectName("cls_n_sec_select")
-        cls_n_sec_filter_layout.addWidget(select_cls_n_sec)
-        layout_.addWidget(cls_n_sec_area, stretch=1)
+        cls_area = QGroupBox()
+        cls_area.setTitle("Select Class")
+        cls_filter_layout = QHBoxLayout(cls_area)
+        self.f_select_cls = QComboBox()
+        self.f_select_cls.setObjectName("cls_n_sec_select")
+        cls_filter_layout.addWidget(self.f_select_cls)
+        layout_.addWidget(cls_area, stretch=1)
+
+        sec_area = QGroupBox()
+        sec_area.setTitle("Select Section")
+        sec_filter_layout = QHBoxLayout(sec_area)
+        self.f_select_sec = QComboBox()
+        self.f_select_sec.setObjectName("cls_n_sec_select")
+        sec_filter_layout.addWidget(self.f_select_sec)
+        layout_.addWidget(sec_area, stretch=1)
         self.load_cls_sec_list()
 
         current_date = real_datetime.datetime.now()
@@ -54,23 +62,30 @@ class Header(QFrame):
         self.f_date_entries.append(year_entry)
         layout_.addWidget(date_filter)
 
-        self.open_sheet_btn = QPushButton("Open attendance sheet")
+        self.open_sheet_btn = QPushButton("Load students")
         self.open_sheet_btn.setObjectName("load_sheet_btn")
         self.open_sheet_btn.setCursor(Qt.PointingHandCursor)
         layout_.addWidget(self.open_sheet_btn, alignment=Qt.AlignVCenter)
-        # self.on_cls_sec_change(select_cls_n_sec.currentText())
 
     def load_cls_sec_list(self):
-        cls_sec_list = os.listdir(AppConstant.CLASS_DIRECTORY)
-        if not cls_sec_list:
-            self.f_select_cls_n_sec.addItem("No class found.")
-        for cls_sec in cls_sec_list:
-            self.f_select_cls_n_sec.addItem(cls_sec)
+        self.db_instance.cursor.execute("SELECT DISTINCT class FROM students")
+        db_resp = self.db_instance.cursor.fetchall()
+        if not db_resp:
+            self.f_select_cls.addItem("No class found")
+        for item in db_resp:
+            self.f_select_cls.addItem(str(item[0]))
+
+        self.db_instance.cursor.execute("SELECT DISTINCT section FROM students")
+        db_resp = self.db_instance.cursor.fetchall()
+        if not db_resp:
+            self.f_select_cls.addItem("No section found")
+        for item in db_resp:
+            self.f_select_sec.addItem(str(item[0]))
 
     def set_on_open_sheet(self, callable_):
         def launch_():
             date_ = real_datetime.date(*[int(inp.currentText()) for inp in self.f_date_entries][::-1])
-            callable_(self.f_select_cls_n_sec.currentText(), date_)
+            callable_(self.f_select_cls.currentText(), self.f_select_sec.currentText(), date_)
         self.open_sheet_btn.clicked.connect(launch_)
 
 class MarkAttendanceArea(QFrame):
@@ -78,7 +93,7 @@ class MarkAttendanceArea(QFrame):
 
     def __init__(self):
         super().__init__()
-        self.new_attendance = []
+        self.new_attendance = {}
         self.setObjectName("marking_area")
         layout_ = QVBoxLayout(self)
 
@@ -101,19 +116,18 @@ class MarkAttendanceArea(QFrame):
         table_header.setSectionResizeMode(QHeaderView.ResizeToContents)
         layout_.addWidget(self.table_)
 
-    def load_sheet(self, sheet_worker:ExcelFileWorker, date_:real_datetime.date):
-        students_list = zip(sheet_worker.getColumnByIndex(0), sheet_worker.getColumnByIndex(1))
+    def load_sheet(self, students_list, date_:real_datetime.date):
         self.lbl_no_sheet.setVisible(False)
         self.table_.setSortingEnabled(False)
         self.table_.clear()
         self.table_.setRowCount(0)
         self.table_.setColumnCount(3)
         self.table_.setVisible(True)
-        self.table_.setHorizontalHeaderLabels(list(students_list.__next__())+[str(date_.strftime("%d-%m-%Y"))])
+        self.table_.setHorizontalHeaderLabels(["admission_no", "student_name"]+[str(date_.strftime("%d-%m-%Y"))])
         i = 0
         try:
             for adm_no, std_name in students_list:
-                self.new_attendance.append('N/A')
+                self.new_attendance[adm_no] = 'N/A'
                 self.table_.insertRow(i)
                 self.table_.setRowHeight(i, 60)
 
@@ -129,47 +143,44 @@ class MarkAttendanceArea(QFrame):
                 marking_col_layout = QHBoxLayout(marking_col)
                 present_opt = QRadioButton("Present")
                 present_opt.setObjectName("present_opt")
-                present_opt.toggled.connect(lambda _, i_copy=i: self.mark_new_attendance("P", i_copy))
+                present_opt.toggled.connect(lambda _, adm_no_cpy=adm_no: self.mark_new_attendance("P", adm_no_cpy))
                 marking_col_layout.addWidget(present_opt, stretch=1)
                 absent_opt = QRadioButton("Absent")
                 absent_opt.setObjectName("absent_opt")
-                absent_opt.toggled.connect(lambda _, i_copy=i: self.mark_new_attendance("A", i_copy))
+                absent_opt.toggled.connect(lambda _, adm_no_cpy=adm_no: self.mark_new_attendance("A", adm_no_cpy))
                 marking_col_layout.addWidget(absent_opt, stretch=1)
                 na_opt = QRadioButton("N/A")
                 na_opt.setObjectName("na_opt")
                 na_opt.setChecked(True)
-                na_opt.toggled.connect(lambda _, i_copy=i: self.mark_new_attendance("N/A", i_copy))
+                na_opt.toggled.connect(lambda _, adm_no_cpy=adm_no: self.mark_new_attendance("N/A", adm_no_cpy))
                 marking_col_layout.addWidget(na_opt, stretch=1)
                 self.table_.setCellWidget(i, 2, marking_col)
                 i += 1
             self.table_.setSortingEnabled(True)
-            if i == 0:
-                self.table_.setVisible(False)
-                self.lbl_no_sheet.setVisible(True)
-                MessageBox().show_message("Error", f"Can't load! Attendance sheet of year '{date_.year}' has no students.", "error")
         except BaseException as e:
             print(e)
 
-    def mark_new_attendance(self, status, idx_):
-        self.new_attendance[idx_] = status
+    def mark_new_attendance(self, status, adm_no):
+        self.new_attendance[adm_no] = status
 
     def get_new_attendance(self):
         return self.new_attendance
 
 class MarkAttendancePage(QFrame):
-    cur_sheet_worker = None
-    cur_clas_sec = None
+    selected_cls = None
+    selected_sec = None
     selected_date = None
-    excel_col_to_update = None
+    db_instance = None
 
-    def __init__(self):
+    def __init__(self, db_instance:MsAccessDriver):
         super().__init__()
+        self.db_instance = db_instance
         with open("style_sheets/mark_attendance_page.css") as fp:
             self.setStyleSheet(fp.read())
         self.setObjectName("mark_attendance_body")
         layout_ = QVBoxLayout(self)
 
-        self.header_ = Header(self)
+        self.header_ = Header(db_instance=db_instance)
         self.header_.set_on_open_sheet(self.on_open_sheet)
         layout_.addWidget(self.header_)
 
@@ -183,7 +194,7 @@ class MarkAttendancePage(QFrame):
         page_opt_area.setObjectName("page_opt_area")
         page_opt_area_layout = QVBoxLayout(page_opt_area)
 
-        btn_save = QPushButton("Save Attendance Sheet")
+        btn_save = QPushButton("Save Attendance")
         btn_save.setObjectName("save_attendance_btn")
         btn_save.setFixedWidth(300)
         btn_save.clicked.connect(self.on_save_attendance)
@@ -199,31 +210,46 @@ class MarkAttendancePage(QFrame):
         layout_.addWidget(bi_area, stretch=1)
 
 
-    def on_open_sheet(self, cls_sec, date_:real_datetime.date):
-        sheet_path = os.path.join(AppConstant.CLASS_DIRECTORY, cls_sec, f"{date_.year}.xlsx")
-        if not os.path.exists(sheet_path):
-            MessageBox().show_message("Error", f"Class of year '{date_.year}' not exists.", "error")
-            if self.selected_date:
-                self.header_.f_date_entries[-1].setCurrentText(str(self.selected_date.year))
-            return
-        sheet_worker = ExcelFileWorker(sheet_path)
-        stringed_date = str(date_.strftime("%d-%m-%Y"))
-        if stringed_date in sheet_worker.getHeaderLabels():
-            MessageBox().show_message("Warning", f"Attendance of date '{stringed_date}' has already been marked.\nPlease go to 'Attendance Report' page to edit.", "warn")
-            return
-        self.cur_clas_sec = cls_sec
-        self.selected_date = date_
-        self.excel_col_to_update = sheet_worker.getNoOfColumns() + 1
-        self.cur_sheet_worker = sheet_worker
-        self.marking_area.load_sheet(sheet_worker, date_)
+    def on_open_sheet(self, cls, sec, date_:real_datetime.date):
+        try:
+            self.db_instance.cursor.execute("SELECT COUNT(admission_no) FROM attendance WHERE mark_date=?", date_)
+            db_resp = self.db_instance.cursor.fetchone()[0]
+            if db_resp:
+                conf_ = MessageBox.ask_question(f"It looks like attendance of '{db_resp}' students is already marked at selected date '{date_.strftime("%d-%m-%Y")}'.\nWould you like to retake attendance of this date?")
+                if not conf_:
+                    return
+
+            self.db_instance.cursor.execute("SELECT admission_no, student_name FROM students WHERE class=? AND section=?", cls, sec)
+            db_resp = self.db_instance.cursor.fetchall()
+            if not db_resp:
+                MessageBox().show_message("Error", "Currently no student belongs to the selected class & section.\nError : Failed to load attendance sheet.", "error")
+                return
+            self.selected_cls = cls
+            self.selected_sec = sec
+            self.selected_date = date_
+            self.marking_area.load_sheet(db_resp, date_)
+        except BaseException as e:
+            print(e)
 
     def on_save_attendance(self):
         try:
-            to_add = [str(self.selected_date.strftime("%d-%m-%Y"))] + self.marking_area.get_new_attendance()
-            self.cur_sheet_worker.insertColumn(self.excel_col_to_update, to_add)
-            MessageBox().show_message("Success", f"Attendance for class {self.cur_clas_sec} dated {to_add[0]} has been recorded successfully.", "info")
+            to_mark = self.marking_area.get_new_attendance()
+            for adm_no in to_mark:
+                self.db_instance.cursor.execute("SELECT id FROM attendance WHERE admission_no=? AND mark_date=?", adm_no, self.selected_date)
+                db_resp = self.db_instance.cursor.fetchone()
+                if db_resp is not None:
+                    self.db_instance.cursor.execute("UPDATE attendance SET status=? WHERE admission_no=? AND mark_date=?", to_mark[adm_no], adm_no, self.selected_date)
+                else:
+                    self.db_instance.cursor.execute("SELECT MAX(id) FROM attendance")
+                    new_id = self.db_instance.cursor.fetchone()[0]
+                    new_id = 0 if new_id is None else new_id
+                    self.db_instance.cursor.execute("INSERT INTO attendance VALUES (?, ?, ?, ?)", new_id+1, adm_no, self.selected_date, to_mark[adm_no])
+            self.db_instance.cursor.commit()
+            MessageBox().show_message("Success", f"Attendance of '{self.selected_date.strftime('%d-%m-%Y')}' has been saved!", "info")
         except BaseException as e:
-            MessageBox().show_message("Error", f"Can't save attendance.\nError : {e}", "error")
+            MessageBox().show_message("Error", f"Unable to save attendance.\nError : {e}", "error")
+
+
 if __name__ == '__main__':
     from PyQt5.QtWidgets import QApplication, QMainWindow
     app_ = QApplication([])

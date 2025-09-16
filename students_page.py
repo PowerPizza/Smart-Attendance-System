@@ -4,9 +4,9 @@ from additional_widgets import *
 from PyQt5.QtCore import Qt, QThread
 from PyQt5.QtGui import QIntValidator, QIcon
 from app_constants import AppConstant
-from excel_functions import *
 from qt_theading import ImageProcessingWorker
 import pickle
+from database_manager import MsAccessDriver
 
 class EntryField(QWidget):
     entry_input = None
@@ -60,16 +60,14 @@ class AddStudentForm(QFrame):
     section_entry = None
     user_face_encodings = None
     reload_table_callback = None
-    std_db = None
-    attndnc_db_manager = None
     td1 = None  # Thread 1
     img_capture_worker = None  # Worker running on Thread 1
     image_holder_layout = None
+    db_instance = None
 
-    def __init__(self, std_db:ExcelFileWorker, attndnc_db_manager:AttendanceDBManager):
+    def __init__(self, db_instance:MsAccessDriver):
         super().__init__()
-        self.std_db = std_db
-        self.attndnc_db_manager = attndnc_db_manager
+        self.db_instance = db_instance
         self.setObjectName("add_students_area")
         layout_ = QVBoxLayout(self)
 
@@ -234,15 +232,18 @@ class AddStudentForm(QFrame):
         self.drop_down.on_click = self.on_dropdown_open
 
     def auto_filler(self):
-        self.adm_no_entry.setValue(str(safe_max(self.std_db.getColumnByIndex(0)) + 1))
-        classes_ = []
-        sections_ = []
-        for cls_sec in os.listdir(AppConstant.CLASS_DIRECTORY):
-            cls_sec = cls_sec.split("-")
-            classes_.append(cls_sec[0])
-            sections_.append(cls_sec[-1])
-        self.class_entry.setSelectItems(set(classes_))
-        self.section_entry.setSelectItems(set(sections_))
+        self.db_instance.cursor.execute("SELECT MAX(admission_no) FROM students")
+        db_resp = self.db_instance.cursor.fetchone()[0]
+        db_resp = 0 if db_resp is None else db_resp
+        self.adm_no_entry.setValue(str(db_resp + 1))
+
+        self.db_instance.cursor.execute("SELECT DISTINCT class FROM students")
+        classes_ = [item[0] for item in self.db_instance.cursor.fetchall()]
+
+        self.db_instance.cursor.execute("SELECT DISTINCT section FROM students")
+        sections_ = [item[0] for item in self.db_instance.cursor.fetchall()]
+        self.class_entry.setSelectItems(classes_)
+        self.section_entry.setSelectItems(sections_)
 
     def on_next_step(self):
         try:
@@ -250,8 +251,10 @@ class AddStudentForm(QFrame):
             if '' in data_to_add:
                 MessageBox().show_message("Error", "All entries are required please fill them all and try again.", "error")
                 return
+            self.db_instance.cursor.execute("SELECT admission_no FROM students WHERE admission_no=?", data_to_add[0])
+            db_resp = self.db_instance.cursor.fetchone()
+            assert not db_resp, f"Admission no. '{data_to_add[0]}' already exists."  # Throws error if admission no. already exists.
             data_to_add[0] = int(str(data_to_add[0]))
-            assert data_to_add[0] not in self.std_db.getPrimaryColumnValues(), f"Admission no. '{data_to_add[0]}' already exists."  # Throws error as : [12 not in [11, 12, 13] -> False -> Assert Error]
             self.back_btn.setVisible(True)
             self.form_.setVisible(False)
             self.form_2.setVisible(True)
@@ -285,24 +288,14 @@ class AddStudentForm(QFrame):
     def on_submit(self):
         try:
             data_to_add = [self.adm_no_entry.getValue(), self.name_entry.getValue(), self.father_name_entry.getValue(), self.mobile_no_entry.getValue(), self.class_entry.getValue(), self.section_entry.getValue()]
-            data_to_add[0] = int(str(data_to_add[0]))
-            cls_ = f"{self.class_entry.getValue()}-{self.section_entry.getValue()}"
-            if cls_ not in os.listdir(AppConstant.CLASS_DIRECTORY):
-                conf_ = MessageBox.ask_question(f"Class ‘{cls_}’ was not found. Would you like to create it so the student can be added?")
-                if not conf_:
-                    return
-                if cls_.count("-") != 1:
-                    MessageBox().show_message("Error", "class and section names must not contain '-'.\nClass creation cancelled - Failed to add student.", "error")
-                    return
-                os.mkdir(os.path.join(AppConstant.CLASS_DIRECTORY, cls_))
-                self.attndnc_db_manager.createThisYearAttendanceSheet(cls_)
             enc_file_name = f"faceOf{data_to_add[0]}.pkl"
-            data_to_add.append(enc_file_name)
             with open(os.path.join(AppConstant.ENCODINGS_DIRECTORY, enc_file_name), "wb") as fp:
                 pickle.dump({"admission_no": data_to_add[0], "encodings": self.user_face_encodings}, fp)
-            self.std_db.appendRow(data_to_add)
+            data_to_add.append(enc_file_name)
+            self.db_instance.cursor.execute("INSERT INTO students VALUES (?, ?, ?, ?, ?, ?, ?)", data_to_add)
+            self.db_instance.cursor.commit()
+
             self.auto_filler()
-            self.attndnc_db_manager.insertNewStudent(cls_, data_to_add[0], data_to_add[1])
             if callable(self.reload_table_callback):
                 self.reload_table_callback()
             self.user_face_encodings = None
@@ -386,12 +379,12 @@ class AddStudentForm(QFrame):
         clearLayout(self.image_holder_layout)
 
 class StudentsTable(QFrame):
-    std_db = None
     is_table_loading = False
+    db_instance = None
 
-    def __init__(self, std_db:ExcelFileWorker):
+    def __init__(self, db_instance:MsAccessDriver):
         super().__init__()
-        self.std_db = std_db
+        self.db_instance = db_instance
         layout_ = QVBoxLayout(self)
         self.setObjectName("student_table_holder")
 
@@ -427,72 +420,75 @@ class StudentsTable(QFrame):
     def load_data(self):
         self.table_.setSortingEnabled(False)
         self.table_.clear()
-        total_rows = self.std_db.getNoOfRows()
-        total_cols = self.std_db.getNoOfColumns()
-        self.table_.setRowCount(total_rows-1)
-        self.table_.setColumnCount(total_cols+1)
+        self.table_.setRowCount(0)
+        self.table_.setColumnCount(0)
 
-        self.table_.setHorizontalHeaderLabels(self.std_db.getHeaderLabels()+["Delete"])
+        self.db_instance.cursor.execute("SELECT * FROM students")
+        col_names = [col_name[0] for col_name in self.db_instance.cursor.description]+["Delete"]
+        self.table_.setColumnCount(len(col_names))
+        self.table_.setHorizontalHeaderLabels(col_names)
 
-        if total_rows-1 <= 0:
+        db_resp = self.db_instance.cursor.fetchall()
+        if not db_resp:
             self.table_.setVisible(False)
             self.lbl_no_data.setVisible(True)
             self.table_.setSortingEnabled(True)
             return
-        self.is_table_loading = True
 
+        self.is_table_loading = True
         self.lbl_no_data.setVisible(False)
         self.table_.setVisible(True)
-
-        for x in range(total_rows-1):
-            row_ = self.std_db.getRowByIndex(x+1)
-            idx_ = 0
-            for idx_, data_  in enumerate(row_):
-                if idx_ == self.std_db.primary_column_idx:
+        for r_idx, row_ in enumerate(db_resp):
+            self.table_.insertRow(r_idx)
+            for c_idx, col_data in enumerate(row_):
+                if c_idx == 0:
                     data_item = QTableWidgetItem()
-                    data_item.setData(Qt.DisplayRole, int(data_))
+                    data_item.setData(Qt.DisplayRole, int(col_data))
                 else:
-                    data_item = QTableWidgetItem(data_)
-                if idx_ == 6:  # Disabled editing of Encoding file name column.
+                    data_item = QTableWidgetItem(col_data)
+                if c_idx == 6:  # Disabled editing of Encoding file name column.
                     data_item.setFlags(data_item.flags() & ~Qt.ItemIsEditable)
                 data_item.setTextAlignment(Qt.AlignCenter)
-                self.table_.setItem(x, idx_, data_item)
+                self.table_.setItem(r_idx, c_idx, data_item)
             delete_btn = QImageView("icons/delete_icon.svg")
             delete_btn.setAlignment(Qt.AlignCenter)
-            delete_btn.on_click = lambda x_copy=x: self.onDelete(x_copy)
-            self.table_.setCellWidget(x, idx_+1, delete_btn)
+            delete_btn.on_click = lambda adm_no_cpy=row_[0]: self.onDelete(adm_no_cpy)
+            self.table_.setCellWidget(r_idx, c_idx + 1, delete_btn)
         self.table_.setSortingEnabled(True)
         self.is_table_loading = False
 
-    def onDelete(self, row_idx):
+    def onDelete(self, adm_no):
         conf_ = MessageBox.ask_question("Do you really want to permanently delete this entry?")
         if conf_:
-            encoding_file_ = self.std_db.getRowByIndex(row_idx+1)
-            encoding_file_path = os.path.join(AppConstant.ENCODINGS_DIRECTORY, encoding_file_[-1])
-            if os.path.exists(encoding_file_path):
-                os.remove(encoding_file_path)
-            self.std_db.deleteRowByIndex(row_idx+1)
+            self.db_instance.cursor.execute("SELECT face_encoding_file FROM students WHERE admission_no=?", adm_no)
+            file_to_del = self.db_instance.cursor.fetchone()[0]
+            os.remove(os.path.join(AppConstant.ENCODINGS_DIRECTORY, file_to_del))
+            self.db_instance.cursor.execute("DELETE FROM students WHERE admission_no=?", adm_no)
+            self.db_instance.cursor.commit()
+            if not self.db_instance.cursor.rowcount:
+                MessageBox().show_message("Error", "Deletion failed!", "error")
+                return
             self.load_data()
 
     def onEdit(self, row_, col_):
         if self.is_table_loading:
             return
         try:
+            adm_no_to_update = self.table_.item(row_, 0).text()
             new_value = self.table_.item(row_, col_).text()
-            if col_ == self.std_db.primary_column_idx:
-                if not new_value.isnumeric():
-                    MessageBox().show_message("Error", "Can't update value - Required type int.", "error")
-                    self.table_.item(row_, col_).setText(self.table_.old_value)
-                    self.table_.cellChanged.connect(self.onEdit)
-                    return
-                self.std_db.updateByLocation(row_+2, col_+1, int(new_value))
-            else:
-                self.std_db.updateByLocation(row_+2, col_+1, new_value)
+            col_name_to_update = self.table_.horizontalHeaderItem(col_).text()
+            if col_name_to_update == "admission_no":  # update add. no. = 6 where add. no. = 6 not makes any sense.
+                adm_no_to_update = self.table_.old_value
+            self.db_instance.cursor.execute(f"UPDATE students SET {col_name_to_update}=? WHERE admission_no=?", new_value, adm_no_to_update)
+            self.db_instance.cursor.commit()
+            if not self.db_instance.cursor.rowcount:
+                MessageBox().show_message("Error", "Unable to update!", "error")
         except BaseException as e:
             MessageBox().show_message("Error", f"Can't update value.\nError : {e}", "error")
+            self.table_.item(row_, col_).setText(self.table_.old_value)
 
 class StudentsPage(QFrame):
-    def __init__(self):
+    def __init__(self, db_instance:MsAccessDriver):
         super().__init__()
         with open("style_sheets/students_page.css", "r") as fp:
             self.setStyleSheet(fp.read())
@@ -500,13 +496,10 @@ class StudentsPage(QFrame):
 
         layout_ = QVBoxLayout(self)
 
-        student_file_driver = ExcelFileWorker(AppConstant.STUDENTS_FILE, 0)
-        attendance_db_manager = AttendanceDBManager()
-
-        add_students_area = AddStudentForm(std_db=student_file_driver, attndnc_db_manager=attendance_db_manager)
+        add_students_area = AddStudentForm(db_instance=db_instance)
         layout_.addWidget(add_students_area)
 
-        student_table = StudentsTable(std_db=student_file_driver)
+        student_table = StudentsTable(db_instance=db_instance)
         layout_.addWidget(student_table, stretch=1)
 
         add_students_area.reload_table_callback = student_table.load_data

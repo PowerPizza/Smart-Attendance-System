@@ -12,13 +12,14 @@ from auto_attendance_page import AutoAttendancePage
 from login_panel import LoginPanel
 from app_constants import *
 from excel_functions import *
+from database_manager import MsAccessDriver
 
 class AdminPanel(QFrame):
     _selected_tab_action = None
     _selected_tab = None
     content_ = None
 
-    def __init__(self, window_instance):
+    def __init__(self, window_instance, db_instance:MsAccessDriver):
         super().__init__()
         self.setObjectName("main_body")
         with open("style_sheets/admin_panel.css", "r") as fp:
@@ -33,24 +34,24 @@ class AdminPanel(QFrame):
         tool_bar = QToolBar("MY TB", window_instance)
         tool_bar.setObjectName("tool_bar")
 
-        class_n_sec = QAction("Class && Section", window_instance)
-        class_n_sec.setCheckable(True)
-        class_n_sec.triggered.connect(lambda: self.onChangeWindow(class_n_sec, ClassNSectionPage()))
-        tool_bar.addAction(class_n_sec)
+        # class_n_sec = QAction("Class && Section", window_instance)
+        # class_n_sec.setCheckable(True)
+        # class_n_sec.triggered.connect(lambda: self.onChangeWindow(class_n_sec, ClassNSectionPage()))
+        # tool_bar.addAction(class_n_sec)
 
         students = QAction("Students", window_instance)
         students.setCheckable(True)
-        students.triggered.connect(lambda: self.onChangeWindow(students, StudentsPage()))
+        students.triggered.connect(lambda: self.onChangeWindow(students, StudentsPage(db_instance=db_instance)))
         tool_bar.addAction(students)
 
         attendance = QAction("Attendance Records", window_instance)
         attendance.setCheckable(True)
-        attendance.triggered.connect(lambda: self.onChangeWindow(attendance, AttendanceRecordsPage()))
+        attendance.triggered.connect(lambda: self.onChangeWindow(attendance, AttendanceRecordsPage(db_instance=db_instance)))
         tool_bar.addAction(attendance)
 
         mark_attendance = QAction("Mark Attendance", window_instance)
         mark_attendance.setCheckable(True)
-        mark_attendance.triggered.connect(lambda: self.onChangeWindow(mark_attendance, MarkAttendancePage()))
+        mark_attendance.triggered.connect(lambda: self.onChangeWindow(mark_attendance, MarkAttendancePage(db_instance=db_instance)))
         tool_bar.addAction(mark_attendance)
 
         reports = QAction("Reports", window_instance)
