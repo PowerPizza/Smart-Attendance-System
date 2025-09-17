@@ -2,6 +2,11 @@ import os.path
 import pyodbc
 from app_constants import AppConstant
 
+class EncodeType:
+    data = None
+    def __init__(self, data=None):
+        self.data = data
+
 class MsAccessDriver:
     data_file_path = None
     def __init__(self):
@@ -25,7 +30,8 @@ class MsAccessDriver:
             self.createStudentsTable()
         if "attendance" not in self.get_table_names():
             self.createAttendanceTable()
-
+        if "admin_creds" not in self.get_table_names():
+            self.createAdminCredsTable()
 
     def get_table_names(self):
         self.cursor.tables()
@@ -53,6 +59,29 @@ class MsAccessDriver:
         """)
         self.cursor.commit()
 
+    def createAdminCredsTable(self):
+        self.cursor.execute("""CREATE TABLE admin_creds (
+            field_no INTEGER PRIMARY KEY,
+            user_name LONGTEXT,
+            password LONGTEXT)
+        """)
+        self.cursor.execute("INSERT INTO admin_creds VALUES (?, ?, ?)", 0, self.encrypt("admin").data, self.encrypt("admin123").data)
+        self.cursor.commit()
+
+    @staticmethod
+    def encrypt(text:str) -> EncodeType:
+        to_ret = EncodeType()
+        to_ret.data = ",".join([str(ord(char_)+87) for char_ in text])
+        return to_ret
+
+    @staticmethod
+    def decrypt(text:EncodeType):
+        return "".join([chr(int(char_code)-87) for char_code in text.data.split(",")])
+
 if __name__ == '__main__':
-    db_ = MsAccessDriver()
-    print(db_.get_table_names())
+    # db_ = MsAccessDriver()
+    # print(db_.get_table_names())
+    encp = MsAccessDriver.encrypt("Hello World")
+    print(encp)
+    print(encp.data)
+    print(MsAccessDriver.decrypt(encp))

@@ -55,7 +55,7 @@ class MainApplication(QApplication):
         self.create_login_panel()
 
     def create_login_panel(self):
-        login_form_ = LoginPanel()
+        login_form_ = LoginPanel(db_instance=self.db_)
         login_form_.onOpenFaceAttendancePanel(self.face_attendance_panel)
         login_form_.onClickLogin(self.open_admin_panel)
         self.main_window.setCentralWidget(login_form_)

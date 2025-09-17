@@ -1,5 +1,6 @@
 import os
 import pickle
+import random
 
 import face_recognition
 import numpy as np
@@ -11,6 +12,57 @@ from app_constants import AppConstant
 from qt_theading import LiveFaceRecorder
 from database_manager import MsAccessDriver
 import datetime as real_datetime
+
+class MarkedAttendanceTable(QFrame):
+    cur_date = None
+    def __init__(self):
+        super().__init__()
+        self.cur_date = real_datetime.datetime.now().strftime("%d-%m-%Y")
+
+        layout_ = QVBoxLayout(self)
+        lbl_table_title = QLabel(f"<h2>List Marked attendance of '{self.cur_date}'</h2>")
+        lbl_table_title.setObjectName("lbl_table_title")
+        layout_.addWidget(lbl_table_title, alignment=Qt.AlignHCenter)
+        self.table_ = QTableWidget(self)
+        self.table_.setObjectName("table_")
+        self.table_.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table_.setShowGrid(False)
+        self.table_.verticalHeader().setVisible(False)
+        self.table_.setSortingEnabled(True)
+        self.table_.setColumnCount(5)
+        self.table_.setMinimumWidth(550)
+        self.table_.setHorizontalHeaderLabels(["Admission No.", "Student Name", "Father Name", "Class & Section", self.cur_date])
+        table_header = self.table_.horizontalHeader()
+        table_header.setStretchLastSection(False)
+        table_header.setSortIndicatorShown(True)
+        table_header.setSectionsClickable(True)
+        table_header.setSortIndicator(0, Qt.AscendingOrder)
+        table_header.setSectionResizeMode(QHeaderView.ResizeToContents)
+        layout_.addWidget(self.table_, alignment=Qt.AlignHCenter)
+
+    def load_data(self, data_list):
+        try:
+            self.table_.setSortingEnabled(False)
+            self.table_.clear()
+            self.table_.setColumnCount(5)
+            self.table_.setRowCount(0)
+            for row_idx, row_ in enumerate(data_list):
+                self.table_.insertRow(row_idx)
+                for col_idx, col_ in enumerate(row_):
+                    data_ = QTableWidgetItem(str(col_))
+                    self.table_.setItem(row_idx, col_idx, data_)
+            self.table_.setSortingEnabled(True)
+        except BaseException as e:
+            print(e)
+
+    def insert_data(self, data_row):
+        self.table_.setSortingEnabled(False)
+        new_row_at = self.table_.rowCount()
+        self.table_.insertRow(new_row_at)
+        for col_idx, item in enumerate(data_row):
+            data_ = QTableWidgetItem(str(item))
+            self.table_.setItem(new_row_at, col_idx, data_)
+        self.table_.setSortingEnabled(True)
 
 class AutoAttendancePage(QFrame):
     cam_preview = None
@@ -28,7 +80,7 @@ class AutoAttendancePage(QFrame):
             self.setStyleSheet(fp.read())
         self.setObjectName("auto_attendance_body")
 
-        layout_ = QVBoxLayout(self)
+        layout_ = QHBoxLayout(self)
 
         content_area = QFrame()
         content_area.setObjectName("content_area")
@@ -76,15 +128,19 @@ class AutoAttendancePage(QFrame):
         self.admin_login .setObjectName("admin_login")
         self.admin_login .setCursor(Qt.PointingHandCursor)
         content_area_layout.addWidget(self.admin_login , alignment=Qt.AlignHCenter)
+        layout_.addWidget(content_area, alignment=Qt.AlignCenter, stretch=1)
 
-        layout_.addWidget(content_area, alignment=Qt.AlignCenter)
+        self.marked_table = marked_table = MarkedAttendanceTable()
+        marked_table.setObjectName("table_holder")
+        layout_.addWidget(marked_table, stretch=1)
 
 
     def start_live_camera(self):
         def on_msg(msg):
             if msg["type"] == "warn":
+                self.lbl_attendance_marked.setText("")
                 self.cam_preview.setIcon("icons/no_face_detected.png")
-            self.lbl_info.setText(msg["msg"])
+            self.lbl_info.setText(f'{random.choice("🔹🔸")} {msg["msg"]}')
 
         def on_face_encodings(ecd):
             try:
@@ -112,6 +168,7 @@ class AutoAttendancePage(QFrame):
                             self.db_instance.cursor.execute("INSERT INTO attendance VALUES (?, ?, ?, ?)", new_id+1, found_adm_no, date_, "P")
                             self.db_instance.cursor.commit()
                             self.lbl_attendance_marked.setText("🟢 Attendance Marked")
+                            self.marked_table.insert_data([found_adm_no, data_found[0], data_found[1], f"{data_found[2]}-{data_found[3]}", "P"])
                         break
             except BaseException as e:
                 print(e)
@@ -148,7 +205,10 @@ class AutoAttendancePage(QFrame):
         self.stop_btn.setVisible(True)
 
     def onClickAdminLogin(self, callback_):
-        self.admin_login.clicked.connect(callback_)
+        def callback_with_stop():
+            self.stop_live_camera()
+            callback_()
+        self.admin_login.clicked.connect(callback_with_stop)
 
 if __name__ == '__main__':
     from PyQt5.QtWidgets import QApplication, QMainWindow

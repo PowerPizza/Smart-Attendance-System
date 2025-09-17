@@ -8,6 +8,7 @@ from class_n_section import ClassNSectionPage
 from students_page import StudentsPage
 from attendance_records_page import AttendanceRecordsPage
 from mark_attendance_page import MarkAttendancePage
+from settings_page import SettingsPage
 from database_manager import MsAccessDriver
 
 class AdminPanel(QFrame):
@@ -59,6 +60,11 @@ class AdminPanel(QFrame):
         import_export.setCheckable(True)
         import_export.triggered.connect(lambda: self.onChangeWindow(import_export))
         tool_bar.addAction(import_export)
+
+        settings = QAction("Settings", window_instance)
+        settings.setCheckable(True)
+        settings.triggered.connect(lambda: self.onChangeWindow(settings, SettingsPage(db_instance=db_instance)))
+        tool_bar.addAction(settings)
 
         layout_.addWidget(tool_bar)
         for action_ in tool_bar.actions():

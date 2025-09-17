@@ -1,3 +1,18 @@
+QScrollBar:vertical {
+    background-color: #949494;
+    width: 6px;
+}
+QScrollBar::handle:vertical {
+    background-color: #6b6b6b;
+}
+QScrollBar:horizontal {
+    background-color: #949494;
+    height: 6px;
+}
+QScrollBar::handle:horizontal {
+    background-color: #6b6b6b;
+}
+
 #auto_attendance_body {
     background-color: #1f2121;
 }
@@ -59,4 +74,69 @@
 }
 #auto_attendance_body #content_area #admin_login:hover {
     color: #2c9ea9;
+}
+
+#auto_attendance_body #table_holder #lbl_table_title {
+    color: white;
+    margin: 5px;
+    font-family: Arial;
+}
+#auto_attendance_body #table_holder #table_{
+    background-color: transparent;
+    border-radius: 10px;
+    border: 1px solid gray;
+    border: 0;
+    font-size: 16px;
+    font-weight: 500;
+}
+#auto_attendance_body #table_holder #table_::item{
+    color: white;
+    border-bottom: 1px solid gray;
+    border-right: none;
+    border-left: none;
+    border-top: none;
+}
+#auto_attendance_body #table_holder #table_::item:selected {
+    background-color: #525252;
+}
+
+#auto_attendance_body #table_holder #table_ QHeaderView {
+    background-color: transparent;
+}
+#auto_attendance_body #table_holder #table_ QHeaderView::section:first {
+    border-top-left-radius: 10px;
+    border-left: 1px solid transparent;
+}
+#auto_attendance_body #table_holder #table_ QHeaderView::section:last {
+    border-top-right-radius: 10px;
+    border-right: 1px solid transparent;
+}
+#auto_attendance_body #table_holder #table_ QHeaderView::section {
+    border: 1px solid transparent;
+    border-right: 1px solid gray;
+    background-color: #3b2e23;
+    color: white;
+    font-size: 16px;
+    color: white;
+    font-weight: bold;
+    font-family: Arial;
+    padding: 5px;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+#auto_attendance_body #table_holder #table_ QHeaderView::up-arrow {
+    image: url(icons/arrow_drop_down.svg);
+    subcontrol-position: right center;
+    subcontrol-origin: padding;
+    padding-right: 6px;
+    width: 20px;
+    height: 20px;
+}
+#auto_attendance_body #table_holder #table_ QHeaderView::down-arrow {
+    image: url(icons/arrow_drop_up.svg);
+    subcontrol-position: right center;
+    subcontrol-origin: padding;
+    padding-right: 6px;
+    width: 20px;
+    height: 20px;
 }

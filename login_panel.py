@@ -1,9 +1,15 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
+from database_manager import MsAccessDriver, EncodeType
+from additional_widgets import MessageBox
 
 class LoginPanel(QFrame):
-    def __init__(self):
+    username = None
+    password = None
+    db_instance = None
+    def __init__(self, db_instance:MsAccessDriver):
         super().__init__()
+        self.db_instance = db_instance
         self.setObjectName("login_screen")
         with open("style_sheets/login_panel.css", "r") as fp:
             self.setStyleSheet(fp.read())
@@ -21,13 +27,13 @@ class LoginPanel(QFrame):
         title.setAlignment(Qt.AlignCenter)
         card_layout.addWidget(title)
 
-        username = QLineEdit()
+        self.username = username = QLineEdit()
         username.setObjectName("entry")
         username.setPlaceholderText("Username")
         card_layout.addWidget(username)
 
         # Password input
-        password = QLineEdit()
+        self.password = password = QLineEdit()
         password.setObjectName("entry")
         password.setPlaceholderText("Password")
         password.setEchoMode(QLineEdit.Password)
@@ -37,6 +43,7 @@ class LoginPanel(QFrame):
         self.login_button = login_button = QPushButton("Login as Admin")
         login_button.setObjectName("login_btn")
         login_button.setCursor(Qt.PointingHandCursor)
+        login_button.setDefault(True)
         card_layout.addWidget(login_button)
 
         # Divider
@@ -66,7 +73,19 @@ class LoginPanel(QFrame):
         self.mark_attendance.clicked.connect(callback_)
 
     def onClickLogin(self, callback_):
-        self.login_button.clicked.connect(callback_)
+        def callback_caller():
+            try:
+                self.db_instance.cursor.execute("SELECT user_name, password FROM admin_creds WHERE field_no=?", 0)
+                db_resp = self.db_instance.cursor.fetchone()
+                db_uname = MsAccessDriver.decrypt(EncodeType(db_resp[0]))
+                db_pass = MsAccessDriver.decrypt(EncodeType(db_resp[1]))
+                if self.username.text() != db_uname or self.password.text() != db_pass:
+                    MessageBox().show_message("Error", "Failed to login.\nError : INVALID CREDENTIALS", "error")
+                    return
+                callback_()
+            except BaseException as e:
+                MessageBox().show_message("Error", f"Failed to login.\nError : {e}", "error")
+        self.login_button.clicked.connect(callback_caller)
 
 if __name__ == '__main__':
     from PyQt5.QtWidgets import QApplication, QMainWindow
