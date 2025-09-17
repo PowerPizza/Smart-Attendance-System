@@ -8,10 +8,6 @@ from class_n_section import ClassNSectionPage
 from students_page import StudentsPage
 from attendance_records_page import AttendanceRecordsPage
 from mark_attendance_page import MarkAttendancePage
-from auto_attendance_page import AutoAttendancePage
-from login_panel import LoginPanel
-from app_constants import *
-from excel_functions import *
 from database_manager import MsAccessDriver
 
 class AdminPanel(QFrame):

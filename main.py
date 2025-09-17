@@ -61,7 +61,7 @@ class MainApplication(QApplication):
         self.main_window.setCentralWidget(login_form_)
 
     def face_attendance_panel(self):
-        panel_ = AutoAttendancePage()
+        panel_ = AutoAttendancePage(db_instance=self.db_)
         panel_.onClickAdminLogin(self.create_login_panel)
         self.main_window.setCentralWidget(panel_)
 
