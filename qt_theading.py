@@ -112,3 +112,33 @@ class LiveFaceRecorder(QThread):
 
     def resume(self):
         self.is_paused = False
+
+
+class UIBlockingTaskRunner(QThread):
+    class TaskResp:
+        _resp = None
+        def __init__(self, resp_body=None):
+            self._resp = resp_body
+
+        def getResponseBody(self):
+            return self._resp
+
+        def setResponseBody(self, resp):
+            self._resp = resp
+
+    task_to_run = None
+    task_response = pyqtSignal(TaskResp)
+    live_progress = pyqtSignal(str)
+
+    def __init__(self, task_to_run):
+        self.task_to_run = task_to_run
+        super().__init__()
+
+    @pyqtSlot()
+    def run(self):
+        to_resp = self.TaskResp()
+        to_resp.setResponseBody(self.task_to_run(self.emit_progress))
+        self.task_response.emit(to_resp)
+
+    def emit_progress(self, prog_):
+        self.live_progress.emit(str(prog_))

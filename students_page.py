@@ -458,17 +458,23 @@ class StudentsTable(QFrame):
         self.is_table_loading = False
 
     def onDelete(self, adm_no):
-        conf_ = MessageBox.ask_question("Do you really want to permanently delete this entry?")
-        if conf_:
-            self.db_instance.cursor.execute("SELECT face_encoding_file FROM students WHERE admission_no=?", adm_no)
-            file_to_del = self.db_instance.cursor.fetchone()[0]
-            os.remove(os.path.join(AppConstant.ENCODINGS_DIRECTORY, file_to_del))
-            self.db_instance.cursor.execute("DELETE FROM students WHERE admission_no=?", adm_no)
-            self.db_instance.cursor.commit()
-            if not self.db_instance.cursor.rowcount:
-                MessageBox().show_message("Error", "Deletion failed!", "error")
-                return
-            self.load_data()
+        try:
+            conf_ = MessageBox.ask_question("Do you really want to permanently delete this entry?")
+            if conf_:
+                self.db_instance.cursor.execute("SELECT face_encoding_file FROM students WHERE admission_no=?", adm_no)
+                file_to_del = self.db_instance.cursor.fetchone()[0]
+                try:
+                    os.remove(os.path.join(AppConstant.ENCODINGS_DIRECTORY, file_to_del))
+                except BaseException as e:
+                    print(e)
+                self.db_instance.cursor.execute("DELETE FROM students WHERE admission_no=?", adm_no)
+                self.db_instance.cursor.commit()
+                if not self.db_instance.cursor.rowcount:
+                    MessageBox().show_message("Error", "Deletion failed!", "error")
+                    return
+                self.load_data()
+        except BaseException as e:
+            MessageBox().show_message("Error", f"Failed to delete.\nError : {e}", "error")
 
     def onEdit(self, row_, col_):
         if self.is_table_loading:

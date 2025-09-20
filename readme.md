@@ -9,3 +9,9 @@ To run this software as a developer,
 * Double click `main.py` or open in `IDLE` and press `run` to run the software.
 
 > NOTE : Visual Studio C++ is required to run dlib of face_recognition and its package of 6.8GB.... ENJOY!!! XD
+
+
+# Downloads for windows 10
+> [DOWNLOAD ZIP](https://drive.google.com/drive/folders/1Xw1FeFfTC3v77wlHfNPDbystfVTxWIEM?usp=sharing)
+
+> [DOWNLOAD INSTALLER x64](https://drive.google.com/drive/folders/1Xw1FeFfTC3v77wlHfNPDbystfVTxWIEM?usp=sharing)

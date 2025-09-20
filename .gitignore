@@ -1,7 +1,5 @@
 /myenv
 /tests
-other_files/plan.png
-other_files/example_ui.webp
 /build
 /dist
 *.spec

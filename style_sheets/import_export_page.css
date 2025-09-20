@@ -1,0 +1,115 @@
+QScrollBar:vertical,
+QScrollBar:horizontal {
+    background-color: #949494;
+    width: 6px;
+}
+QScrollBar::handle:vertical,
+QScrollBar::handle:horizontal {
+    background-color: #6b6b6b;
+}
+QScrollBar:horizontal {
+    height: 6px;
+}
+
+#import_export_body {
+    background-color: #1f2121;
+}
+
+#scrollable {
+    background-color: #1f2121;
+    border: 0;
+}
+#scrollable #ui_holder {
+    background-color: #1f2121;
+}
+
+#import_export_body #import_student_area,
+#import_export_body #export_attendance_area,
+#import_export_body #export_students_data,
+#import_export_body #inject_db {
+    background-color: #262828;
+    border: 1px solid gray;
+    border-radius: 10px;
+}
+
+#import_export_body #import_student_area #mapping_area,
+#import_export_body #import_student_area #proceed_area{
+    border: 1px solid gray;
+    border-radius: 5px;
+}
+
+/* ----------------------- COMMON CSS ------------------------- */
+#ui_btn{
+    background-color: #32b8c6;
+    font-size: 16px;
+    color: #13343b;
+    border: 0px;
+    border-radius: 8px;
+    padding: 10px;
+}
+#ui_btn:hover{
+    background-color: #2da6b2;
+}
+#ui_btn:pressed {
+    border: 1px solid cyan;
+}
+#ui_btn[ui="red"] {
+    background-color: #e65348;
+}
+#ui_btn[ui="red"]:hover{
+    background-color: #cd3a31;
+}
+#ui_btn[ui="red"]:pressed {
+    border: 1px solid red;
+}
+
+#normal_lbl {
+    font-size: 16px;
+    color: white;
+}
+
+QComboBox {
+    background-color: transparent;
+    color: white;
+    border: 1px solid gray;
+    font-size: 16px;
+    padding: 5px;
+    border-radius: 5px;
+}
+QComboBox QAbstractItemView  {
+    background-color: #262828;
+    color: white;
+}
+
+#mild_info_lbl {
+    font-size: 14px;
+    color: #a6a6a6;
+    font-family: Arial;
+    margin-top: 5px;
+    margin-bottom: 5px;
+}
+
+QCheckBox, QRadioButton {
+    font-size: 14px;
+    color: white;
+}
+
+QGroupBox{
+    border: 1px solid gray;
+    border-radius: 5px;
+    font-size: 12px;
+    margin-top: 8px;
+}
+QGroupBox::title{
+    color: white;
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    position: relative;
+    left: 5px;
+}
+
+#heading_ {
+    color: white;
+    font-family: Arial;
+    margin-bottom: 10px;
+}

@@ -1,0 +1,89 @@
+QScrollBar:vertical,
+QScrollBar:horizontal {
+    background-color: #949494;
+    width: 6px;
+}
+QScrollBar::handle:vertical,
+QScrollBar::handle:horizontal {
+    background-color: #6b6b6b;
+}
+QScrollBar:horizontal {
+    height: 6px;
+}
+
+QScrollArea {
+    background-color: transparent;
+    border: 0;
+}
+QScrollArea #fig_holder {
+    background-color: transparent;
+}
+
+#report_page_body {
+    background-color: #1f2121;
+}
+
+#report_page_body #lbl_title {
+    color: white;
+    font-family: Arial;
+}
+
+
+#pie_chart,
+#cwa_trend_graph,
+#cs_compair_graphs {
+    background-color: #262828;
+    border: 1px solid gray;
+    border-radius: 10px;
+}
+
+#pie_chart #date_selection {
+    background-color: #262828;
+    border: 1px solid gray;
+    border-radius: 5px;
+    font-size: 16px;
+    color: white;
+    padding: 5px;
+}
+
+#cwa_trend_graph #graph_holder {
+}
+
+#cs_compair_graphs #scroll_area {
+    background-color: transparent;
+}
+#cs_compair_graphs #scroll_area #heatmap_holder {
+    background-color: transparent;
+    border: 1px solid gray;
+}
+#cs_compair_graphs #scroll_area #heatmap_holder #map {
+    border: 1px solid gray;
+    border-radius: 5px;
+}
+
+
+QGroupBox{
+    border: 1px solid gray;
+    border-radius: 5px;
+    font-size: 12px;
+    margin-top: 8px;
+}
+QGroupBox::title{
+    color: white;
+    subcontrol-origin: margin;
+    subcontrol-position: top left; /* or top center / top right */
+    position: relative;
+    left: 5px;
+}
+QGroupBox QComboBox {
+    background-color: transparent;
+    color: white;
+    border: 1px solid gray;
+    font-size: 16px;
+    padding: 5px;
+    border-radius: 5px;
+}
+QGroupBox QComboBox QAbstractItemView  {
+    background-color: #262828;
+    color: white;
+}

@@ -1,14 +1,11 @@
-import os.path
-
 from PyQt5.QtWidgets import *
-from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtGui import QColor, QIcon, QFont
 from additional_widgets import *
-from class_n_section import ClassNSectionPage
 from students_page import StudentsPage
 from attendance_records_page import AttendanceRecordsPage
 from mark_attendance_page import MarkAttendancePage
 from settings_page import SettingsPage
+from reports_page import ReportsPage
+from import_export_page import ImportExportPage
 from database_manager import MsAccessDriver
 
 class AdminPanel(QFrame):
@@ -53,12 +50,12 @@ class AdminPanel(QFrame):
 
         reports = QAction("Reports", window_instance)
         reports.setCheckable(True)
-        reports.triggered.connect(lambda: self.onChangeWindow(reports))
+        reports.triggered.connect(lambda: self.onChangeWindow(reports, ReportsPage(db_instance=db_instance)))
         tool_bar.addAction(reports)
 
         import_export = QAction("Import/Export", window_instance)
         import_export.setCheckable(True)
-        import_export.triggered.connect(lambda: self.onChangeWindow(import_export))
+        import_export.triggered.connect(lambda: self.onChangeWindow(import_export, ImportExportPage(db_instance=db_instance)))
         tool_bar.addAction(import_export)
 
         settings = QAction("Settings", window_instance)

@@ -8,22 +8,23 @@ class EncodeType:
         self.data = data
 
 class MsAccessDriver:
+    conn_str = None
     data_file_path = None
     def __init__(self):
         self.data_file_path = os.path.join(AppConstant.DATA_DIRECTORY, "database.accdb")
 
-        conn_str = (
+        self.conn_str = (
             r"DRIVER={Microsoft Access Driver (*.mdb, *.accdb)};"
             f"DBQ={self.data_file_path};"
         )
 
         if os.path.exists(self.data_file_path):
-            self.db = pyodbc.connect(conn_str)
+            self.db = pyodbc.connect(self.conn_str)
             self.cursor = self.db.cursor()
 
         else:
             os.system(f"copy \"empty_db.accdb\" \"{self.data_file_path}\"")
-            self.db = pyodbc.connect(conn_str)
+            self.db = pyodbc.connect(self.conn_str)
             self.cursor = self.db.cursor()
 
         if "students" not in self.get_table_names():
@@ -67,6 +68,14 @@ class MsAccessDriver:
         """)
         self.cursor.execute("INSERT INTO admin_creds VALUES (?, ?, ?)", 0, self.encrypt("admin").data, self.encrypt("admin123").data)
         self.cursor.commit()
+
+    def reconnect(self):
+        if self.db:
+            if not self.db.closed:
+                self.db.close()
+            self.db = None
+        self.db = pyodbc.connect(self.conn_str)
+        self.cursor = self.db.cursor()
 
     @staticmethod
     def encrypt(text:str) -> EncodeType:

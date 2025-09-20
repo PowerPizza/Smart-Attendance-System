@@ -1,16 +1,14 @@
-QScrollBar:vertical {
+QScrollBar:vertical,
+QScrollBar:horizontal {
     background-color: #949494;
     width: 6px;
 }
-QScrollBar::handle:vertical {
+QScrollBar::handle:vertical,
+QScrollBar::handle:horizontal {
     background-color: #6b6b6b;
 }
 QScrollBar:horizontal {
-    background-color: #949494;
     height: 6px;
-}
-QScrollBar::handle:horizontal {
-    background-color: #6b6b6b;
 }
 
 #attendance_page_body {

@@ -3,9 +3,6 @@ from PyQt5.QtWidgets import *
 from additional_widgets import *
 from PyQt5.QtCore import Qt, QThread, QSize
 from PyQt5.QtGui import QIntValidator, QIcon
-from app_constants import AppConstant
-from qt_theading import ImageProcessingWorker
-import pickle
 from database_manager import MsAccessDriver, EncodeType
 
 class CredEntry(QGroupBox):
@@ -102,6 +99,9 @@ class AdminCredentialsArea(QFrame):
 
     def on_save(self):
         try:
+            if not self.entry_username.getValue() or not self.entry_password.getValue():
+                MessageBox().show_message("Error", "Please fill the enties.", "error")
+                return
             uname_ = MsAccessDriver.encrypt(self.entry_username.getValue()).data
             password_ = MsAccessDriver.encrypt(self.entry_password.getValue()).data
             self.db_instance.cursor.execute("UPDATE admin_creds SET user_name=?, password=? WHERE field_no=?", uname_, password_, 0)

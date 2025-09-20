@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QLabel, QMessageBox
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPixmap, QColor
+from PyQt5.QtGui import QPixmap, QIcon
 
 def clearLayout(layout):
     if layout is not None:
@@ -45,6 +45,7 @@ class MessageBox:
 
     def show_message(self, title, msg_, type_):
         msg_b = QMessageBox()
+        msg_b.setWindowIcon(QIcon("icons/circle_blue.svg"))
         msg_b.setIcon(self._type_map[type_])
         msg_b.setWindowTitle(title)
         msg_b.setText(msg_)
@@ -54,6 +55,8 @@ class MessageBox:
     @staticmethod
     def ask_question(msg_):
         msg_b = QMessageBox()
+        msg_b.setWindowIcon(QIcon("icons/circle_blue.svg"))
+        msg_b.setWindowTitle("Question")
         msg_b.setIcon(QMessageBox.Question)
         msg_b.setText(msg_)
         msg_b.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
