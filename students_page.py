@@ -7,6 +7,7 @@ from app_constants import AppConstant
 from qt_theading import ImageProcessingWorker
 import pickle
 from database_manager import MsAccessDriver
+import datetime as real_datetime
 
 class EntryField(QWidget):
     entry_input = None
@@ -385,8 +386,61 @@ class StudentsTable(QFrame):
     def __init__(self, db_instance:MsAccessDriver):
         super().__init__()
         self.db_instance = db_instance
-        layout_ = QVBoxLayout(self)
         self.setObjectName("student_table_holder")
+        layout_ = QVBoxLayout(self)
+
+        # dfc = QWidget(self)
+        # dfc_layout = QVBoxLayout(dfc)
+        # dfc_layout.set
+        filters_ = QFrame(self)
+        filters_.setObjectName("filters_area")
+        filters_layout = QHBoxLayout(filters_)
+        filters_layout.setContentsMargins(0, 0, 0, 0)
+
+        adm_no_filter = QGroupBox(filters_)
+        adm_no_filter.setTitle("Select Admission No.")
+        adm_no_filter_layout = QHBoxLayout(adm_no_filter)
+        self.f_select_adm_no = QComboBox(filters_)
+        self.f_select_adm_no.setEditable(True)
+        self.f_select_adm_no.setObjectName("cls_n_sec_select")
+        self.f_select_adm_no.addItem("All")
+        adm_no_filter_layout.addWidget(self.f_select_adm_no)
+        filters_layout.addWidget(adm_no_filter, stretch=1)
+
+        cls_filter = QGroupBox(filters_)
+        cls_filter.setTitle("Select Class")
+        cls_filter_layout = QHBoxLayout(cls_filter)
+        self.f_select_cls = QComboBox(filters_)
+        self.f_select_cls.setObjectName("cls_n_sec_select")
+        self.f_select_cls.addItem("All")
+        cls_filter_layout.addWidget(self.f_select_cls)
+        filters_layout.addWidget(cls_filter, stretch=1)
+
+        sec_filter = QGroupBox(filters_)
+        sec_filter.setTitle("Select Section")
+        sec_filter_layout = QHBoxLayout(sec_filter)
+        self.f_select_sec = QComboBox(filters_)
+        self.f_select_sec.setObjectName("cls_n_sec_select")
+        self.f_select_sec.addItem("All")
+        sec_filter_layout.addWidget(self.f_select_sec)
+        filters_layout.addWidget(sec_filter, stretch=1)
+        self.auto_filler()
+
+        btn_apply_filter = QPushButton("Filter")
+        btn_apply_filter.setObjectName("apply_filter_btn")
+        btn_apply_filter.clicked.connect(self.on_apply_filter)
+        btn_apply_filter.setFixedWidth(100)
+        btn_apply_filter.setCursor(Qt.PointingHandCursor)
+        filters_layout.addWidget(btn_apply_filter)
+
+        btn_delete_all = QPushButton("Delete All")
+        btn_delete_all.setObjectName("delete_all_btn")
+        btn_delete_all.clicked.connect(self.on_delete_all)
+        btn_delete_all.setFixedWidth(100)
+        btn_delete_all.setCursor(Qt.PointingHandCursor)
+        filters_layout.addWidget(btn_delete_all)
+
+        layout_.addWidget(filters_, alignment=Qt.AlignTop)
 
         self.lbl_no_data = QLabel("<h2>No students found.</h2>")
         self.lbl_no_data.setObjectName("lbl_no_data")
@@ -415,15 +469,73 @@ class StudentsTable(QFrame):
         table_header.setSortIndicator(0, Qt.AscendingOrder)
         table_header.setSectionResizeMode(QHeaderView.Stretch)
 
-        layout_.addWidget(self.table_)
+        layout_.addWidget(self.table_, stretch=1)
 
-    def load_data(self):
+    def auto_filler(self):
+        self.db_instance.cursor.execute("SELECT admission_no FROM students")
+        for item in self.db_instance.cursor.fetchall():
+            self.f_select_adm_no.addItem(str(item[0]))
+
+        self.db_instance.cursor.execute("SELECT DISTINCT class FROM students")
+        for item in self.db_instance.cursor.fetchall():
+            self.f_select_cls.addItem(str(item[0]))
+
+        self.db_instance.cursor.execute("SELECT DISTINCT section FROM students")
+        for item in self.db_instance.cursor.fetchall():
+            self.f_select_sec.addItem(str(item[0]))
+
+    def on_delete_all(self):
+        conf_ = MessageBox.ask_question(f"You are about to delete {self.table_.rowCount()} student records and there respective attendance records.\nDo you really want to continue?")
+        if not conf_:
+            return
+        try:
+            for row_ in range(self.table_.rowCount()):
+                adm_no_to_delete = self.table_.item(row_, 0).text()
+                self.db_instance.cursor.execute("SELECT face_encoding_file FROM students WHERE admission_no=?", adm_no_to_delete)
+                file_to_del = self.db_instance.cursor.fetchone()[0]
+                try:
+                    os.remove(os.path.join(AppConstant.ENCODINGS_DIRECTORY, file_to_del))
+                except BaseException as e:
+                    print(e)
+
+                try:
+                    self.db_instance.cursor.execute("DELETE FROM students WHERE admission_no=?", adm_no_to_delete)
+                except BaseException:
+                    self.db_instance.cursor.execute("DELETE FROM attendance WHERE admission_no=?", adm_no_to_delete)
+                    self.db_instance.cursor.execute("DELETE FROM students WHERE admission_no=?", adm_no_to_delete)
+            self.db_instance.cursor.commit()
+            self.load_data()
+        except BaseException as e:
+            MessageBox().show_message("Error", f"Deletion of records failed.\nError : {e}", "error")
+
+    def on_apply_filter(self):
+        filter_ = ""
+        claus_ = " WHERE"
+        filter_values = []
+        if self.f_select_adm_no.currentText() != "All":
+            filter_ += claus_ + " admission_no=?"
+            claus_ = " AND"
+            filter_values.append(self.f_select_adm_no.currentText())
+        if self.f_select_cls.currentText() != "All":
+            filter_ += claus_ + " class=?"
+            claus_ = " AND"
+            filter_values.append(self.f_select_cls.currentText())
+        if self.f_select_sec.currentText() != "All":
+            filter_ += claus_ + " section=?"
+            filter_values.append(self.f_select_sec.currentText())
+
+        self.load_data(filter_, filter_values)
+
+    def load_data(self, filter_query="", filter_values=None):
+        if filter_values is None:
+            filter_values = []
+
         self.table_.setSortingEnabled(False)
         self.table_.clear()
         self.table_.setRowCount(0)
         self.table_.setColumnCount(0)
 
-        self.db_instance.cursor.execute("SELECT * FROM students")
+        self.db_instance.cursor.execute("SELECT * FROM students"+filter_query, *filter_values)
         col_names = [col_name[0] for col_name in self.db_instance.cursor.description]+["Delete"]
         self.table_.setColumnCount(len(col_names))
         self.table_.setHorizontalHeaderLabels(col_names)
@@ -464,14 +576,21 @@ class StudentsTable(QFrame):
                 self.db_instance.cursor.execute("SELECT face_encoding_file FROM students WHERE admission_no=?", adm_no)
                 file_to_del = self.db_instance.cursor.fetchone()[0]
                 try:
-                    os.remove(os.path.join(AppConstant.ENCODINGS_DIRECTORY, file_to_del))
-                except BaseException as e:
-                    print(e)
-                self.db_instance.cursor.execute("DELETE FROM students WHERE admission_no=?", adm_no)
-                self.db_instance.cursor.commit()
+                    self.db_instance.cursor.execute("DELETE FROM students WHERE admission_no=?", adm_no)
+                except BaseException:
+                    conf_ = MessageBox.ask_question("This student has associated attendance records. Deleting the student will also permanently remove all linked attendance records.\nDo you want to continue?")
+                    if not conf_:
+                        return
+                    self.db_instance.cursor.execute("DELETE FROM attendance WHERE admission_no=?", adm_no)
+                    self.db_instance.cursor.execute("DELETE FROM students WHERE admission_no=?", adm_no)
                 if not self.db_instance.cursor.rowcount:
                     MessageBox().show_message("Error", "Deletion failed!", "error")
                     return
+                self.db_instance.cursor.commit()
+                try:
+                    os.remove(os.path.join(AppConstant.ENCODINGS_DIRECTORY, file_to_del))
+                except BaseException as e:
+                    print(e)
                 self.load_data()
         except BaseException as e:
             MessageBox().show_message("Error", f"Failed to delete.\nError : {e}", "error")

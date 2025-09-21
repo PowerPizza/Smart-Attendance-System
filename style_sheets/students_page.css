@@ -119,6 +119,68 @@ QScrollBar:horizontal {
     background-color: transparent;
 }
 
+#student_main_body #student_table_holder #filters_area {
+    border: 1px solid transparent;
+    border-bottom: 1px solid gray;
+    padding-bottom: 10px;
+    margin-bottom: 5px;
+}
+#student_main_body #student_table_holder #filters_area QGroupBox{
+    border: 1px solid gray;
+    border-radius: 5px;
+    font-size: 12px;
+    margin-top: 8px;
+}
+#student_main_body #student_table_holder #filters_area QGroupBox::title{
+    color: white;
+    subcontrol-origin: margin;
+    subcontrol-position: top left; /* or top center / top right */
+    position: relative;
+    left: 5px;
+}
+#student_main_body #student_table_holder #filters_area  #cls_n_sec_select,
+#student_main_body #student_table_holder #filters_area QComboBox {
+    background-color: transparent;
+    color: white;
+    border: 1px solid gray;
+    font-size: 16px;
+    padding: 5px;
+    border-radius: 5px;
+}
+#student_main_body #student_table_holder #filters_area QComboBox QAbstractItemView  {
+    background-color: #262828;
+    color: white;
+}
+#student_main_body #student_table_holder #filters_area #show_all_opt{
+    color: white;
+    font-size: 16px;
+    border: 1px solid gray;
+    padding: 5px;
+    border-radius: 5px;
+}
+#student_main_body #student_table_holder #filters_area #apply_filter_btn,
+#student_main_body #student_table_holder #filters_area #delete_all_btn {
+    background-color: #323434;
+    border: 1px solid gray;
+    color: white;
+    font-size: 16px;
+    padding: 5px;
+    border-radius: 5px;
+    margin-left: 20px;
+}
+#student_main_body #student_table_holder #filters_area #apply_filter_btn::pressed {
+    border: 1px solid cyan;
+}
+#student_main_body #student_table_holder #filters_area #delete_all_btn {
+    background-color: #290000;
+    border: 1px solid red;
+    color: red;
+}
+#student_main_body #student_table_holder #lbl_no_result{
+    color: white;
+    font-family: Arial;
+}
+
 #student_main_body #student_table_holder {
     background-color: #262828;
     border: 1px solid gray;

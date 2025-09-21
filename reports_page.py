@@ -273,6 +273,8 @@ class ClassSecCompairGraph(QFrame):
             try:
                 heat_maps = []
                 for x in range(1, 13):
+                    if self.worker1 is None:
+                        break
                     cls, sec = value_.split("-")
                     heat_maps.append(self.yearly_map_maker(2025, x, cls, sec))
                     if callable(progress_callback):
@@ -410,6 +412,10 @@ class ReportsPage(QFrame):
         scrollable.setWidget(fig_holder)
 
         layout_.addWidget(scrollable)
+
+    def deleteLater(self):
+        self.cs_compair_graphs.stop_td1()
+        super().deleteLater()
 
 
 if __name__ == '__main__':
